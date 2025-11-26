@@ -3,14 +3,16 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 // ⚠️ SUBSTITUA PELAS SUAS CHAVES DO FIREBASE ⚠️
-const firebaseConfig = {
-  apiKey: "SUA_API_KEY_AQUI",
-  authDomain: "SEU_AUTH_DOMAIN_AQUI",
-  projectId: "SEU_PROJECT_ID_AQUI",
-  storageBucket: "SEU_STORAGE_BUCKET_AQUI",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID_AQUI",
-  appId: "SEU_APP_ID_AQUI"
-};
+   const firebaseConfig = {
+        apiKey: "AIzaSyAnGyAYBthXQs5rEylnLXCxOVQKKN1FP34",
+        authDomain: "grafica-619fd.firebaseapp.com",
+        databaseURL: "https://grafica-619fd-default-rtdb.firebaseio.com", 
+        projectId: "grafica-619fd",
+        storageBucket: "grafica-619fd.firebasestorage.app",
+        messagingSenderId: "1022124441596",
+        appId: "1:1022124441596:web:d6f25056f38a6babc67c79",
+        measurementId: "G-SQ4QNTFXCM"
+    }; 
 
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);

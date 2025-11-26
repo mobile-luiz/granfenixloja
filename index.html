@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-commerce Dinâmico com Firebase Realtime e Vue 3</title>
+    <title>E-commerce Dinâmico com Firebase Authentication e WhatsApp</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     
     <style>
-        /* (Seu CSS original, mantido para consistência visual) */
+        /* --- Estilos (Não alterados) --- */
         :root {
             --primary-color: #ff8c00; 
             --secondary-color: #333;
@@ -43,6 +44,8 @@
             padding-bottom: 15px;
             margin-bottom: 30px;
         }
+        
+        /* --- Navegação (Navbar) --- */
         .navbar {
             display: flex;
             justify-content: center;
@@ -74,6 +77,8 @@
             border-radius: var(--border-radius-large);
             box-shadow: var(--card-shadow);
         }
+
+        /* --- Grid de Produtos --- */
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -84,6 +89,11 @@
             border-radius: var(--border-radius-large);
             text-align: center;
             border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
         }
         .product-image {
             width: 100%;
@@ -118,18 +128,51 @@
             margin-top: 5px; 
             font-weight: 600;
             width: 100%;
+            transition: background-color 0.2s;
         }
+        .product-card button:hover {
+            background-color: #1a713e;
+        }
+
+        /* --- Grid de Carrinho --- */
+        .cart-list {
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-large);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
         .cart-item {
             display: grid;
-            grid-template-columns: 1fr 200px 120px; 
+            grid-template-columns: 1.5fr 1fr 0.5fr; 
             align-items: center;
-            padding: 20px 0;
+            padding: 15px 20px;
             border-bottom: 1px solid #f0f0f0;
+            background-color: #fff;
         }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .cart-header {
+            font-weight: 700;
+            background-color: #f5f5f5;
+            color: var(--secondary-color);
+            padding: 10px 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .cart-header span {
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        
+        .cart-item-details {
+            font-size: 1.1em;
+        }
+
         .cart-actions {
             display: flex;
             align-items: center;
-            justify-content: flex-end; 
+            justify-content: center; 
             gap: 8px;
         }
         .cart-actions button {
@@ -139,16 +182,29 @@
             border: none;
             border-radius: var(--border-radius-small);
             font-weight: 700;
+            cursor: pointer;
+            min-width: 40px;
+            text-align: center;
+        }
+        .cart-actions span.quantity-display {
+            font-weight: 700;
+            padding: 0 5px;
+            min-width: 20px;
+            text-align: center;
         }
         .cart-actions button.remove {
             background-color: var(--danger-color);
+            margin-left: 10px;
         }
+
         .item-subtotal {
             text-align: right;
             font-weight: 700;
             color: var(--primary-color); 
-            font-size: 1.2em;
+            font-size: 1.1em;
         }
+        
+        /* --- Seção de Total e Finalizar --- */
         .total-section {
             text-align: right;
             margin-top: 30px;
@@ -156,6 +212,12 @@
             font-weight: 700;
             padding: 20px 0;
             border-top: 3px solid var(--primary-color);
+        }
+        .checkout-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
         }
         .checkout-button {
             width: 100%;
@@ -167,7 +229,27 @@
             font-size: 1.2em;
             font-weight: 700;
             box-shadow: 0 4px 10px rgba(255, 140, 0, 0.4);
+            cursor: pointer;
+            transition: all 0.2s;
         }
+        .checkout-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .address-info {
+            background-color: #f7f7f7;
+            padding: 15px;
+            border-radius: var(--border-radius-small);
+            border-left: 5px solid var(--primary-color);
+            font-size: 0.95em;
+        }
+        .address-info strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--secondary-color);
+        }
+        
+        /* --- Modal e Outros Elementos --- */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -205,6 +287,19 @@
             box-sizing: border-box;
             font-size: 1em;
         }
+        /* Grid para o formulário de endereço */
+        .address-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .address-form-grid > div {
+            grid-column: span 2; /* Full width by default */
+        }
+        .address-form-grid > div.half-width {
+            grid-column: span 1; /* Half width */
+        }
+
         .modal-container button.primary {
             background-color: var(--primary-color);
             color: white;
@@ -223,7 +318,21 @@
             width: 100%;
             margin-top: 10px;
             cursor: pointer;
+            padding: 8px 0;
         }
+        .recover-link {
+            text-align: center;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .recover-link button {
+            background: none;
+            border: none;
+            color: #777;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
         .modal-close-btn {
             position: absolute;
             top: 10px;
@@ -242,14 +351,108 @@
             background-color: #f7f7f7;
             border-radius: var(--border-radius-large);
         }
+        
+        /* --- Detalhes do Pedido (Nova Seção) --- */
+        .orders-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .order-item {
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: var(--border-radius-large);
+            margin-bottom: 15px;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .order-address-detail, .order-items-detail {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-left: 4px solid var(--primary-color);
+            background-color: #fffaf5;
+            border-radius: var(--border-radius-small);
+        }
+        .order-address-detail strong, .order-items-detail strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--secondary-color);
+        }
+        .order-items-detail ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 5px;
+        }
+        .order-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dotted #ccc;
+            font-size: 0.9em;
+        }
+        .order-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        /* --- Paginação --- */
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .pagination-controls button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .pagination-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .page-info {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        /* --- Media Queries (Responsividade) --- */
         @media (max-width: 768px) {
             .navbar { flex-wrap: wrap; justify-content: space-around; }
             .navbar button { width: 45%; margin: 5px 0; padding: 10px 0; font-size: 14px; }
             .product-grid { grid-template-columns: 1fr; }
             .product-image { height: 120px; }
-            .cart-item { grid-template-columns: 1fr; grid-template-rows: auto auto; gap: 10px; padding: 15px 0; }
-            .item-subtotal { text-align: left; border-top: 1px dashed #eee; padding-top: 10px; }
-            .cart-actions { justify-content: space-between; }
+            
+            /* Carrinho Responsivo */
+            .cart-item { 
+                grid-template-columns: 1fr; 
+                grid-template-rows: auto auto auto; 
+                gap: 10px; 
+                padding: 15px;
+            }
+            .cart-header { display: none; }
+            .item-subtotal { text-align: left; border-top: 1px dashed #eee; padding-top: 10px; font-size: 1em; }
+            .cart-actions { justify-content: space-between; border: 1px solid #f0f0f0; padding: 5px; border-radius: 8px; }
+            .cart-actions button.remove { margin-left: 0; }
+            .cart-actions span.quantity-display { flex-grow: 1; text-align: center; }
+            .pagination-controls { flex-direction: column; gap: 10px; }
+
+            /* Grid do Formulário de Endereço em telas pequenas */
+            .address-form-grid {
+                grid-template-columns: 1fr; /* Coluna única em telas pequenas */
+            }
+            .address-form-grid > div {
+                grid-column: span 1; /* Todos os campos em largura total */
+            }
+            .address-form-grid > div.half-width {
+                grid-column: span 1; 
+            }
         }
     </style>
 </head>
@@ -270,7 +473,9 @@
             </button>
             <button 
                 :class="{ 'active': currentView === 'pedidos' }" 
-                @click="currentView = 'pedidos'">
+                @click="currentView = 'pedidos'"
+                :disabled="!isLoggedIn"
+                :title="!isLoggedIn ? 'Faça login para ver os pedidos' : ''">
                 📦 Meus Pedidos
             </button>
             <button @click="isLoggedIn ? logout() : openProfileModal('login')">
@@ -292,9 +497,10 @@
 
                 <div v-else class="product-grid">
                     <div class="product-card" v-for="product in products" :key="product.id">
-                        <img :src="product.imageUrl" :alt="product.name" class="product-image">
+                        <img :src="product.imageUrl || 'https://via.placeholder.com/250x140?text=Sem+Imagem'" :alt="product.name" class="product-image">
                         <h3>{{ product.name }}</h3>
-                        <p>Preço unitário: **R$ {{ product.price.toFixed(2).replace('.', ',') }}**</p>
+                        
+                        <p>Preço unitário: R$ **{{ product.price.toFixed(2).replace('.', ',') }}**</p>
                         
                         <div class="quantity-control">
                             <label>Qtd:</label>
@@ -315,55 +521,148 @@
 
             <div v-else-if="currentView === 'carrinho'">
                 <h2>Seu Carrinho de Compras</h2>
-                <ul class="cart-list" v-if="cartItems.length > 0">
-                    <li class="cart-item" v-for="item in cartItems" :key="item.id">
+                
+                <div class="cart-list" v-if="cartItems.length > 0">
+                    <div class="cart-item cart-header">
+                        <span>Produto</span>
+                        <span style="text-align: center;">Quantidade e Ações</span>
+                        <span style="text-align: right;">Subtotal</span>
+                    </div>
+                    
+                    <div class="cart-item" v-for="item in cartItems" :key="item.id">
                         <div class="cart-item-details">
                             **{{ item.name }}** <br>
-                            <em>(R$ {{ item.price.toFixed(2).replace('.', ',') }} / unidade)</em>
+                            <em>(R$ {{ item.price.toFixed(2).replace('.', ',') }} / unid.)</em>
                         </div>
                         <div class="cart-actions">
-                            <button @click="updateCartQuantity(item, -1)">-</button>
-                            <span>{{ item.quantity }}</span>
+                            <button @click="updateCartQuantity(item, -1)" :disabled="item.quantity <= 1">-</button>
+                            <span class="quantity-display">{{ item.quantity }}</span>
                             <button @click="updateCartQuantity(item, 1)">+</button>
                             <button class="remove" @click="removeFromCart(item.id)">Remover</button>
                         </div>
+                        
                         <div class="item-subtotal">
-                            Subtotal: R$ {{ (item.price * item.quantity).toFixed(2).replace('.', ',') }}
+                            R$ **{{ (item.price * item.quantity).toFixed(2).replace('.', ',') }}**
                         </div>
-                    </li>
-                </ul>
+                    </div>
+                </div>
+
                 <p v-else style="text-align: center; padding: 20px; color: #777;">Seu carrinho está vazio. Adicione alguns produtos!</p>
 
                 <div v-if="cartItems.length > 0">
                     <div class="total-section">
-                        Total Geral: **R$ {{ totalCartPrice.toFixed(2).replace('.', ',') }}**
+                        Total Geral: R$ **{{ totalCartPrice.toFixed(2).replace('.', ',') }}**
                     </div>
-                    <button class="checkout-button" @click="checkout">
-                        Finalizar Compra
-                    </button>
+                    
+                    <div class="checkout-area">
+                        <div v-if="isLoggedIn && formattedAddress.trim() !== ''" class="address-info">
+                            <strong>Endereço de Entrega Atual:</strong>
+                            <p>{{ formattedAddress }}</p>
+                            <button 
+                                class="checkout-button" 
+                                style="background-color: var(--success-color);"
+                                @click="confirmOrder">
+                                ✅ Confirmar Endereço e Finalizar
+                            </button>
+                            <button 
+                                class="checkout-button" 
+                                style="background: none; border: 1px solid var(--primary-color); color: var(--primary-color); margin-top: 10px;"
+                                @click="openProfileModal('address')">
+                                Mudar Endereço
+                            </button>
+                        </div>
+                        
+                        <button 
+                            v-else 
+                            class="checkout-button" 
+                            @click="checkout">
+                            Finalizar Compra
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div v-else-if="currentView === 'pedidos'">
-                <h2>Meus Pedidos</h2>
+                <h2>Meus Pedidos (**{{ totalOrdersCount }}** pedidos)</h2>
+                
                 <div v-if="!isLoggedIn" style="text-align: center; padding: 30px; background-color: #fff0e5; border: 1px solid var(--primary-color); border-radius: 8px; color: var(--secondary-color);">
                     Faça login para ver seus pedidos.
                 </div>
-                <ul class="orders-list" v-else-if="userOrders.length > 0">
-                    <li class="order-item" v-for="order in userOrders" :key="order.id">
-                        <div>
-                            **Pedido #{{ order.id.substring(0, 8) }}** ({{ order.date }})
-                            <br>
-                            <span style="font-size: 0.9em; color: #777;">Cliente: {{ userProfile.name }}</span>
-                        </div>
-                        <div>
-                            Status: **{{ order.status }}**
-                            <br>
-                            Total: **R$ {{ order.total.toFixed(2).replace('.', ',') }}**
-                        </div>
-                    </li>
-                </ul>
-                <p v-else style="text-align: center; padding: 20px; color: #777;">Você ainda não tem pedidos finalizados.</p>
+                <div v-else-if="userOrders.length === 0" style="text-align: center; padding: 20px; color: #777;">
+                    Você ainda não tem pedidos finalizados.
+                </div>
+                
+                <div v-else>
+                    
+                    <div class="pagination-controls" v-if="totalPagesOrders > 1">
+                        <button 
+                            @click="changePageOrders(currentPageOrders - 1)" 
+                            :disabled="currentPageOrders === 1">
+                            &lt; Anterior
+                        </button>
+                        <span class="page-info">
+                            Página **{{ currentPageOrders }}** de **{{ totalPagesOrders }}**
+                        </span>
+                        <button 
+                            @click="changePageOrders(currentPageOrders + 1)" 
+                            :disabled="currentPageOrders === totalPagesOrders">
+                            Próximo &gt;
+                        </button>
+                    </div>
+                    
+                    <ul class="orders-list">
+                        <li class="order-item" v-for="order in paginatedOrders" :key="order.id">
+                            <div style="width: 100%;">
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+                                    <div>
+                                        **Pedido #{{ order.id.substring(0, 8).toUpperCase() }}** <br>
+                                        <span style="font-size: 0.9em; color: #777;">Em: {{ order.date }}</span>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        Status: <span :style="{ color: order.status === 'Processando' ? 'orange' : 'green' }">**{{ order.status }}**</span>
+                                        <br>
+                                        Total: R$ **{{ order.total.toFixed(2).replace('.', ',') }}**
+                                    </div>
+                                </div>
+
+                                <div class="order-address-detail">
+                                    <strong>Endereço de Entrega:</strong>
+                                    <p>{{ formatOrderAddress(order.customer.address) }}</p> 
+                                </div>
+
+                                <div class="order-items-detail">
+                                    <strong>Itens:</strong>
+                                    <ul>
+                                        <li v-for="item in order.items" :key="item.id" class="order-detail-item">
+                                            <span style="font-weight: 600;">{{ item.quantity }}x</span> 
+                                            {{ item.name }} 
+                                            <span style="float: right;">R$ {{ (item.price * item.quantity).toFixed(2).replace('.', ',') }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="pagination-controls" v-if="totalPagesOrders > 1">
+                        <button 
+                            @click="changePageOrders(currentPageOrders - 1)" 
+                            :disabled="currentPageOrders === 1">
+                            &lt; Anterior
+                        </button>
+                        <span class="page-info">
+                            Página **{{ currentPageOrders }}** de **{{ totalPagesOrders }}**
+                        </span>
+                        <button 
+                            @click="changePageOrders(currentPageOrders + 1)" 
+                            :disabled="currentPageOrders === totalPagesOrders">
+                            Próximo &gt;
+                        </button>
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -374,9 +673,14 @@
 
                 <div v-if="loginView === 'login'">
                     <h3>Acessar sua Conta</h3>
-                    <form @submit.prevent="simulateLogin(tempLogin.email, tempLogin.password)">
+                    <form @submit.prevent="handleLogin()">
                         <input type="email" v-model="tempLogin.email" placeholder="Seu E-mail" required>
                         <input type="password" v-model="tempLogin.password" placeholder="Sua Senha" required>
+                        
+                        <div class="recover-link">
+                            <button type="button" @click="loginView = 'recover'">Esqueci minha senha</button>
+                        </div>
+
                         <button type="submit" class="primary">Entrar</button>
                     </form>
                     <button class="secondary" @click="loginView = 'register'">Ainda não tenho conta? Cadastrar</button>
@@ -384,7 +688,7 @@
 
                 <div v-else-if="loginView === 'register'">
                     <h3>Criar Conta</h3>
-                    <form @submit.prevent="simulateRegister(tempRegister.name, tempRegister.email, tempRegister.password)">
+                    <form @submit.prevent="handleRegister()">
                         <input type="text" v-model="tempRegister.name" placeholder="Seu Nome Completo" required>
                         <input type="email" v-model="tempRegister.email" placeholder="Seu Melhor E-mail" required>
                         <input type="password" v-model="tempRegister.password" placeholder="Crie uma Senha Segura (min. 6 caracteres)" required minlength="6">
@@ -394,546 +698,624 @@
                     <button class="secondary" @click="loginView = 'login'">Já tenho conta? Acessar</button>
                 </div>
 
+                <div v-else-if="loginView === 'recover'">
+                    <h3>Recuperar Senha</h3>
+                    <p style="font-size: 0.9em; margin-bottom: 20px;">
+                        Informe seu e-mail de cadastro. Enviaremos um link para redefinição.
+                    </p>
+                    <form @submit.prevent="handlePasswordRecovery()">
+                        <input type="email" v-model="tempRecover.email" placeholder="E-mail de Cadastro" required>
+                        
+                        <button type="submit" class="primary">Enviar Link</button>
+                    </form>
+                    <button class="secondary" @click="loginView = 'login'">Voltar ao Login</button>
+                </div>
+
                 <div v-else-if="loginView === 'address' && isLoggedIn">
                     <h3>Endereço de Entrega</h3>
-                    <p>Olá, **{{ userProfile.name.split(' ')[0] }}**. Por favor, informe seu endereço para prosseguir.</p>
+                    <p>Olá, **{{ userProfile.name.split(' ')[0] }}**. Por favor, preencha seus dados de entrega.</p>
                     <form @submit.prevent="saveAddressAndCheckout">
-                        <textarea v-model="userProfile.address" rows="3" placeholder="Rua, Número, Bairro, Cidade, CEP" required></textarea>
-                        <button type="submit" class="primary">Salvar e Finalizar Compra</button>
+                        
+                        <div class="address-form-grid">
+                            
+                            <div>
+                                <input type="text" v-model="userProfile.address.street" placeholder="Rua / Avenida" required>
+                            </div>
+
+                            <div class="half-width">
+                                <input type="text" v-model="userProfile.address.number" placeholder="Número" required>
+                            </div>
+                            <div class="half-width">
+                                <input type="text" v-model="userProfile.address.complement" placeholder="Complemento (apto, bloco, etc.)">
+                            </div>
+
+                            <div>
+                                <input type="text" v-model="userProfile.address.neighborhood" placeholder="Bairro" required>
+                            </div>
+                            <div class="half-width">
+                                <input type="text" v-model="userProfile.address.city" placeholder="Cidade" required>
+                            </div>
+                            <div class="half-width">
+                                <input type="text" v-model="userProfile.address.zipCode" placeholder="CEP (00000-000)" required>
+                            </div>
+
+                        </div>
+                        
+                        <button type="submit" class="primary">Salvar Endereço e Finalizar</button>
                     </form>
                 </div>
 
             </div>
         </div>
     </div>
+    
+    <script>
+    // --- 1. CONFIGURAÇÃO DO FIREBASE ---
+    // ⚠️ ATENÇÃO: Substitua pelos seus dados REAIS do Firebase!
+    const firebaseConfig = {
+        apiKey: "AIzaSyAnGyAYBthXQs5rEylnLXCxOVQKKN1FP34",
+        authDomain: "grafica-619fd.firebaseapp.com",
+        databaseURL: "https://grafica-619fd-default-rtdb.firebaseio.com", 
+        projectId: "grafica-619fd",
+        storageBucket: "grafica-619fd.firebasestorage.app",
+        messagingSenderId: "1022124441596",
+        appId: "1:1022124441596:web:d6f25056f38a6babc67c79",
+        measurementId: "G-SQ4QNTFXCM"
+    }; 
 
-<script>
-    const { createApp, ref, computed, onMounted, watch } = Vue;
-    
-    // ⭐️ CONFIGURAÇÃO DO FIREBASE ⭐️
-    // ⚠️ ATENÇÃO: Substitua pelos seus dados REAIS do Firebase!
-    const firebaseConfig = {
-        apiKey: "AIzaSyAnGyAYBthXQs5rEylnLXCxOVQKKN1FP34",
-        authDomain: "grafica-619fd.firebaseapp.com",
-        databaseURL: "https://grafica-619fd-default-rtdb.firebaseio.com", 
-        projectId: "grafica-619fd",
-        storageBucket: "grafica-619fd.firebasestorage.app",
-        messagingSenderId: "1022124441596",
-        appId: "1:1022124441596:web:d6f25056f38a6babc67c79",
-        measurementId: "G-SQ4QNTFXCM"
-    }; 
+    const initializeFirebase = () => {
+        if (typeof firebase !== 'undefined' && typeof firebase.initializeApp !== 'undefined') {
+            try {
+                const app = firebase.initializeApp(firebaseConfig);
+                return {
+                    app,
+                    auth: firebase.auth(), // NOVO: Objeto de autenticação
+                    db: firebase.database() // Objeto de database
+                };
+            } catch (e) {
+                console.error("Erro ao inicializar Firebase:", e);
+                return null;
+            }
+        }
+        console.error("Firebase SDK não carregado. Verifique os links CDN.");
+        return null;
+    };
 
-    const initializeFirebase = () => {
-        if (typeof firebase !== 'undefined' && typeof firebase.initializeApp !== 'undefined') {
-            try {
-                return firebase.initializeApp(firebaseConfig);
-            } catch (e) {
-                console.error("Erro ao inicializar Firebase:", e);
-                return null;
-            }
-        }
-        console.error("Firebase SDK não carregado. Verifique os links CDN.");
-        return null;
-    };
+    const firebaseServices = initializeFirebase();
+    const auth = firebaseServices ? firebaseServices.auth : null;
+    const db = firebaseServices ? firebaseServices.db : null;
 
-    const app = initializeFirebase();
+    // 🎯 LÓGICA DE PERSISTÊNCIA 🎯
+    const STORAGE_CART_KEY = 'anonymous_cart'; 
+    const WHATSAPP_NUMBER = '81995038049'; // Seu número do WhatsApp
 
-    // 🎯 LÓGICA DE PERSISTÊNCIA 🎯
-    const STORAGE_KEY = 'user_logged_in_id'; 
-    const STORAGE_CART_KEY = 'anonymous_cart'; // Chave para carrinho anônimo
-    const WHATSAPP_NUMBER = '81995038049'; // Número do WhatsApp para o pedido
+    // --- Não precisamos mais salvar o userId no localStorage, o Firebase Auth faz isso! ---
+    // --- Função para criar a estrutura vazia do endereço ---
+    const createEmptyAddress = () => ({
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        zipCode: ''
+    });
+    
+    // --- Funções de Ajuda ---
+    const getFirebaseErrorMessage = (error) => {
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                return 'Este e-mail já está cadastrado.';
+            case 'auth/invalid-email':
+                return 'O e-mail fornecido é inválido.';
+            case 'auth/weak-password':
+                return 'A senha deve ter pelo menos 6 caracteres.';
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+                return 'E-mail ou senha incorretos.';
+            case 'auth/requires-recent-login':
+                return 'É necessário fazer o login novamente para realizar esta ação.';
+            default:
+                console.error("Erro de Firebase Auth:", error.message);
+                return 'Ocorreu um erro. Tente novamente.';
+        }
+    };
+    // -----------------------------
+    
+    const { createApp, ref, computed, onMounted, watch } = Vue;
+    
+    createApp({
+        setup() {
+            // --- 1. ESTADO CENTRAL ---
+            const currentView = ref('produtos'); 
+            const isLoggedIn = ref(false); 
+            const isLoading = ref(true); 
 
-    const saveSession = (key) => {
-        localStorage.setItem(STORAGE_KEY, key);
-    };
-    
-    const clearSession = () => {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(STORAGE_CART_KEY); // Limpa o carrinho local ao sair
-    };
-    
-    // Utilitário para criar uma chave segura a partir do e-mail (usado como ID do usuário no DB)
-    const createSafeEmailKey = (email) => {
-        return email.toLowerCase().replace(/[\.\#\$\/\[\]]/g, '_');
-    };
-    // -----------------------------
-    
-    createApp({
-        setup() {
-            // --- 1. ESTADO CENTRAL ---
-            const currentView = ref('produtos'); 
-            const isLoggedIn = ref(false); 
-            const isLoading = ref(true); 
-
-            const userProfile = ref({
-                name: 'Convidado',
-                email: '',
-                address: '' 
-            });
-            
-            const userId = ref(null); // E-mail sanitizado do usuário logado (chave do Firebase)
-
-            const isProfileModalOpen = ref(false);
-            const loginView = ref('login'); 
-
-            const tempLogin = ref({ email: '', password: '' });
-            const tempRegister = ref({ name: '', email: '', password: '' }); 
-
-            const products = ref([]); 
-            const cartItems = ref([]);
-            const userOrders = ref([]); 
-            
-            // -----------------------------------------------------------
-            // FUNÇÕES DE SINCRONIZAÇÃO DE DADOS (CARRINHO E PEDIDOS) 
-            // -----------------------------------------------------------
-
-            const saveCartLocal = () => {
-                if (!isLoggedIn.value) {
-                    localStorage.setItem(STORAGE_CART_KEY, JSON.stringify(cartItems.value));
-                }
-            };
-
-            const loadCartLocal = () => {
-                const storedCart = localStorage.getItem(STORAGE_CART_KEY);
-                if (storedCart) {
-                    try {
-                        cartItems.value = JSON.parse(storedCart);
-                    } catch (e) {
-                        cartItems.value = [];
-                    }
-                } else {
-                    cartItems.value = [];
-                }
-            };
-
-            const saveCartToFirebase = async () => {
-                if (!userId.value) return; 
-                const db = firebase.database();
-                const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
-                
-                try {
-                    const cartDataToSave = cartItems.value.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        imageUrl: item.imageUrl,
-                        quantity: item.quantity
-                    }));
-                    await cartRef.set(cartDataToSave);
-                } catch (error) {
-                    console.error("Erro ao salvar carrinho no Firebase:", error);
-                }
-            };
-            
-            const loadCartFromFirebase = async () => {
-                if (!userId.value) return;
-                
-                const db = firebase.database();
-                const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
-                
-                try {
-                    const snapshot = await cartRef.get();
-                    if (snapshot.exists()) {
-                        const loadedCart = snapshot.val();
-                        // Adiciona a prop 'quantityToAdd' para o fluxo do usuário na tela de produtos
-                        cartItems.value = Array.isArray(loadedCart) ? loadedCart.map(item => ({...item, quantityToAdd: 1})) : [];
-                    } else {
-                        cartItems.value = [];
-                    }
-                } catch (error) {
-                    console.error("Erro ao carregar carrinho do Firebase:", error);
-                    cartItems.value = [];
-                }
-            };
-
-            const loadOrdersFromFirebase = async () => {
-                if (!userId.value) {
-                    userOrders.value = [];
-                    return;
-                }
-
-                const db = firebase.database();
-                const ordersRef = db.ref(`pedidos/${userId.value}`); 
-                
-                try {
-                    const snapshot = await ordersRef.get();
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        userOrders.value = Object.keys(data).map(key => ({
-                            id: key, 
-                            ...data[key]
-                        })).reverse(); 
-                    } else {
-                        userOrders.value = [];
-                    }
-                } catch (error) {
-                    console.error("Erro ao carregar pedidos do Firebase:", error);
-                    userOrders.value = [];
-                }
-            };
-
-            // Observa a alteração do carrinho e salva localmente (se deslogado) ou no Firebase (se logado)
-            watch(cartItems, () => {
-                if (isLoggedIn.value) {
-                    saveCartToFirebase();
-                    // Nota: A limpeza do carrinho local para usuários logados é tratada nas funções de login/cadastro/logout
-                } else {
-                    saveCartLocal();
-                }
-            }, { deep: true });
-
-            // -----------------------------------------------------------
-            // INICIALIZAÇÃO E AUTO-LOGIN
-            // -----------------------------------------------------------
-
-            const fetchProductsFromFirebase = async () => {
-                // ... (mantida a lógica de carregamento de produtos, sem alterações)
-                if (!app || typeof firebase.database === 'undefined') {
-                    isLoading.value = false;
-                    return;
-                }
-                
-                isLoading.value = true;
-                const db = firebase.database();
-                const productsRef = db.ref('produtos'); 
-
-                try {
-                    const snapshot = await productsRef.get();
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        const loadedProducts = [];
-
-                        for (const key in data) {
-                            if (data.hasOwnProperty(key)) {
-                                const productData = data[key];
-                                loadedProducts.push({
-                                    id: key, 
-                                    name: productData.name || 'Produto sem nome',
-                                    imageUrl: productData.imageUrl || '',
-                                    price: parseFloat(productData.price) || 0,
-                                    quantityToAdd: 1 
-                                });
-                            }
-                        }
-                        products.value = loadedProducts;
-                    } else {
-                        products.value = [];
-                    }
-                } catch (error) {
-                    console.error("Erro ao buscar produtos do Firebase:", error);
-                    alert("Erro ao carregar o catálogo de produtos. Verifique sua conexão e regras do Firebase.");
-                } finally {
-                    isLoading.value = false;
-                }
-            };
-
-            const checkStoredUser = async () => {
-                const storedId = localStorage.getItem(STORAGE_KEY);
-                
-                if (!storedId) {
-                    isLoggedIn.value = false;
-                    loadCartLocal(); // Carrega carrinho anônimo, se houver
-                    return;
-                }
-                
-                const db = firebase.database();
-                const userRef = db.ref(`usuarios/${storedId}`);
-
-                try {
-                    const snapshot = await userRef.get();
-                    if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        
-                        // Loga o usuário automaticamente
-                        userId.value = storedId;
-                        userProfile.value.name = userData.name;
-                        userProfile.value.email = userData.email;
-                        userProfile.value.address = userData.address || '';
-                        isLoggedIn.value = true;
-                        
-                        // Carrega Carrinho e Pedidos do Firebase
-                        await loadCartFromFirebase();
-                        await loadOrdersFromFirebase();
-
-                    } else {
-                        clearSession();
-                        loadCartLocal();
-                    }
-                } catch (error) {
-                    console.error("Erro no auto-login:", error);
-                    clearSession();
-                    loadCartLocal();
-                }
-            };
-            
-            onMounted(() => {
-                fetchProductsFromFirebase();
-                checkStoredUser(); 
-            });
-
-            // --- 2. PROPRIEDADES COMPUTADAS ---
-            const totalCartItems = computed(() => {
-                return cartItems.value.reduce((total, item) => total + item.quantity, 0);
-            });
-
-            const totalCartPrice = computed(() => {
-                return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0);
-            });
-
-            // --- 3. MÉTODOS DE AÇÃO (AUTENTICAÇÃO) ---
-            
-            const openProfileModal = (view = 'login') => {
-                loginView.value = view;
-                isProfileModalOpen.value = true;
-            };
-
-            const closeProfileModal = () => {
-                isProfileModalOpen.value = false;
-            };
-            
-            /**
-             * LÓGICA DE LOGIN (com sincronização de carrinho)
-             */
-            const simulateLogin = async (email, password) => {
-                if (!email.includes('@') || password.length === 0) {
-                    alert("Erro no login. Por favor, insira E-mail e Senha válidos.");
-                    return;
-                }
-
-                const safeEmailKey = createSafeEmailKey(email);
-                const db = firebase.database();
-                const userRef = db.ref(`usuarios/${safeEmailKey}`);
-
-                try {
-                    const snapshot = await userRef.get();
-
-                    if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        
-                        if (userData.password !== password) { 
-                            alert("E-mail ou Senha incorretos.");
-                            return;
-                        }
-                        
-                        // 1. Captura o carrinho anônimo (se houver)
-                        const cartBeforeLogin = cartItems.value.slice(); 
-
-                        // 2. Efetua o login (estado Vue)
-                        userId.value = safeEmailKey;
-                        userProfile.value.name = userData.name;
-                        userProfile.value.email = userData.email;
-                        userProfile.value.address = userData.address || '';
-                        isLoggedIn.value = true;
-                        
-                        // 3. Carrega o carrinho e pedidos do Firebase
-                        await loadOrdersFromFirebase();
-                        await loadCartFromFirebase();
-                        
-                        // 4. Se o carrinho do Firebase estiver vazio, mas o local não, transfere o local
-                        if (cartItems.value.length === 0 && cartBeforeLogin.length > 0) {
-                            cartItems.value = cartBeforeLogin; // Restaura o carrinho anônimo
-                            localStorage.removeItem(STORAGE_CART_KEY); // Limpa o local
-                            alert(`🎉 Seu carrinho anônimo foi recuperado e salvo em sua conta!`);
-                        }
-
-                        // 5. PERSISTÊNCIA
-                        saveSession(safeEmailKey);
-                        closeProfileModal();
-                        alert(`🎉 Login bem-sucedido! Bem-vindo(a) de volta, ${userData.name.split(' ')[0]}.`);
-
-                    } else {
-                        alert("E-mail não encontrado. Por favor, cadastre-se primeiro.");
-                    }
-                } catch (error) {
-                    console.error("Erro ao fazer login no Firebase:", error);
-                    alert("Ocorreu um erro ao tentar fazer login.");
-                }
-            };
-
-            /**
-             * LÓGICA DE CADASTRO (com sincronização de carrinho)
-             */
-            const simulateRegister = async (name, email, password) => { 
-                if (!email.includes('@') || name.length <= 2 || password.length < 6) {
-                    alert("Erro no cadastro. Verifique se Nome, E-mail e Senha (min. 6 caracteres) estão corretos.");
-                    return;
-                }
-                
-                const safeEmailKey = createSafeEmailKey(email);
-                
-                const db = firebase.database();
-                const userRef = db.ref(`usuarios/${safeEmailKey}`);
-
-                try {
-                    // 1. Verifica se o usuário já existe
-                    const snapshot = await userRef.get();
-                    if (snapshot.exists()) {
-                        alert("ERRO: Este e-mail já está cadastrado. Tente fazer o login.");
-                        return;
-                    }
-                    
-                    // 2. Captura o carrinho atual (anônimo)
-                    const cartBeforeRegister = cartItems.value.slice(); 
-
-                    // 3. Cria o novo perfil no Firebase
-                    await userRef.set({
-                        name: name,
-                        email: email,
-                        password: password,
-                        address: ''
-                    });
-
-                    // 4. Efetua o login (estado Vue)
-                    userId.value = safeEmailKey;
-                    userProfile.value.name = name;
-                    userProfile.value.email = email;
-                    isLoggedIn.value = true;
-                    await loadOrdersFromFirebase();
-
-                    // 5. Transfere o carrinho da sessão anônima
-                    if (cartBeforeRegister.length > 0) {
-                        cartItems.value = cartBeforeRegister; // Isso dispara o watch, salvando no Firebase
-                        localStorage.removeItem(STORAGE_CART_KEY); // Limpa o local
-                        alert(`Seu carrinho com ${cartBeforeRegister.length} itens foi salvo na sua nova conta!`);
-                    } else {
-                        cartItems.value = [];
-                    }
-
-                    // 6. PERSISTÊNCIA
-                    saveSession(safeEmailKey);
-                    
-                    closeProfileModal();
-                    alert(`✅ Cadastro e Login bem-sucedidos! Bem-vindo(a), ${name.split(' ')[0]}.`);
-
-                } catch (error) {
-                    console.error("Erro ao registrar no Firebase:", error);
-                    alert("Ocorreu um erro ao tentar se cadastrar.");
-                }
-            };
-
-            /**
-             * LÓGICA DE LOGOUT
-             */
-            const logout = () => {
-                // 1. Garante que o carrinho logado é limpo na memória
-                cartItems.value = []; 
-
-                // 2. Limpa o estado da aplicação e a persistência
-                isLoggedIn.value = false;
-                userId.value = null;
-                userProfile.value = { name: 'Convidado', email: '', address: '' };
-                userOrders.value = [];
-                clearSession();
-                
-                currentView.value = 'produtos';
-                alert("Você foi desconectado(a) com sucesso.");
-            };
-            
-            // --- MÉTODOS DE E-COMMERCE ---
-            
-            // Funções de Carrinho (addToCart, updateCartQuantity, removeFromCart, ensureMinQuantity...)
-            // Mantidas as mesmas do código anterior.
+            // userId agora é o UID do Firebase Auth
+            const userId = ref(null); 
             
-            const ensureMinQuantity = (product) => {
-                if (product.quantityToAdd < 1 || isNaN(product.quantityToAdd)) {
-                    product.quantityToAdd = 1;
-                }
-            };
+            const userProfile = ref({
+                name: 'Convidado',
+                email: '',
+                address: createEmptyAddress() 
+            });
 
-            const addToCart = (product, quantity) => {
-                const qty = Math.max(1, parseInt(quantity) || 1);
-                
-                const existingItem = cartItems.value.find(item => item.id === product.id);
-                
-                if (existingItem) {
-                    existingItem.quantity += qty;
-                } else {
-                    cartItems.value.push({
-                        id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        imageUrl: product.imageUrl,
-                        quantity: qty,
-                    });
-                }
-                alert(`"${product.name}" adicionado ao carrinho!`);
-            };
+            const isProfileModalOpen = ref(false);
+            const loginView = ref('login'); 
 
-            const updateCartQuantity = (item, delta) => {
-                const newQuantity = item.quantity + delta;
-                
-                if (newQuantity < 1) {
-                    removeFromCart(item.id);
-                } else {
-                    item.quantity = newQuantity;
-                }
-            };
+            const tempLogin = ref({ email: '', password: '' });
+            const tempRegister = ref({ name: '', email: '', password: '' }); 
+            const tempRecover = ref({ email: '' }); 
 
-            const removeFromCart = (productId) => {
-                cartItems.value = cartItems.value.filter(item => item.id !== productId);
-                alert("Item removido do carrinho.");
-            };
+            const products = ref([]); 
+            const cartItems = ref([]);
+            const userOrders = ref([]); 
+            const currentPageOrders = ref(1); 
             
-            const checkout = () => {
-                if (totalCartItems.value === 0) {
-                    alert("Seu carrinho está vazio!");
-                    return;
-                }
+            // -----------------------------------------------------------
+            // FUNÇÕES DE SINCRONIZAÇÃO DE DADOS (CARRINHO E PERFIL) 
+            // -----------------------------------------------------------
 
-                if (!isLoggedIn.value) {
-                    alert("Por favor, faça login ou cadastre-se para finalizar a compra.");
-                    openProfileModal('login');
-                    return;
-                }
+            const saveCartLocal = () => {
+                // Salva o carrinho localmente apenas se não estiver logado
+                if (!isLoggedIn.value) {
+                    localStorage.setItem(STORAGE_CART_KEY, JSON.stringify(cartItems.value));
+                }
+            };
 
-                if (!userProfile.value.address || userProfile.value.address.trim() === '') {
-                    alert("Por favor, preencha seu endereço para finalizar o pedido.");
-                    openProfileModal('address'); // Pede o endereço
-                    return;
-                }
+            const loadCartLocal = () => {
+                const storedCart = localStorage.getItem(STORAGE_CART_KEY);
+                if (storedCart) {
+                    try {
+                        cartItems.value = JSON.parse(storedCart).map(item => ({...item, quantityToAdd: 1}));
+                    } catch (e) {
+                        cartItems.value = [];
+                    }
+                } else {
+                    cartItems.value = [];
+                }
+            };
 
-                confirmOrder();
-            };
-            
-            const saveAddressAndCheckout = async () => {
-                if (!userProfile.value.address || userProfile.value.address.trim() === '') {
-                    alert("O campo de endereço não pode estar vazio.");
-                    return;
-                }
-
-                const db = firebase.database();
-                const userRef = db.ref(`usuarios/${userId.value}`);
-
-                try {
-                    await userRef.update({ address: userProfile.value.address });
-                    closeProfileModal();
-                    confirmOrder();
-                } catch (error) {
-                    console.error("Erro ao salvar endereço:", error);
-                    alert("Erro ao salvar o endereço. Tente novamente.");
-                }
-            };
+            const saveCartToFirebase = async () => {
+                if (!userId.value || !db) return; 
+                const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
+                
+                try {
+                    const cartDataToSave = cartItems.value.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        imageUrl: item.imageUrl,
+                        quantity: item.quantity
+                    }));
+                    await cartRef.set(cartDataToSave);
+                } catch (error) {
+                    console.error("Erro ao salvar carrinho no Firebase:", error);
+                }
+            };
             
-            // --- 4. FUNÇÕES DE WHATSAPP ---
+            const loadCartFromFirebase = async () => {
+                if (!userId.value || !db) return;
+                
+                const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
+                
+                try {
+                    const snapshot = await cartRef.get();
+                    if (snapshot.exists()) {
+                        const loadedCart = snapshot.val();
+                        // Garante que é um array, necessário se houver itens
+                        cartItems.value = Array.isArray(loadedCart) ? loadedCart.map(item => ({...item, quantityToAdd: 1})) : [];
+                    } else {
+                        cartItems.value = [];
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar carrinho do Firebase:", error);
+                    cartItems.value = [];
+                }
+            };
 
-            const sendOrderDetailsToWhatsApp = (orderId, orderData) => {
-                // 1. Formata a lista de itens
+            const loadUserProfileFromFirebase = async (uid) => {
+                if (!uid || !db) return;
+                
+                const userRef = db.ref(`usuarios/${uid}`);
+                
+                try {
+                    const snapshot = await userRef.get();
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        userProfile.value.name = userData.name || 'Usuário';
+                        userProfile.value.email = userData.email || auth.currentUser.email;
+                        userProfile.value.address = userData.address || createEmptyAddress();
+                    } else {
+                        // Perfil incompleto (apenas Auth, sem metadados no DB)
+                        userProfile.value.name = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];
+                        userProfile.value.email = auth.currentUser.email;
+                        userProfile.value.address = createEmptyAddress();
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar perfil do DB:", error);
+                }
+            };
+            
+            const loadOrdersFromFirebase = async () => {
+                if (!userId.value || !db) {
+                    userOrders.value = [];
+                    return;
+                }
+
+                const ordersRef = db.ref(`pedidos/${userId.value}`); 
+                
+                try {
+                    const snapshot = await ordersRef.get();
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        // Converte objeto de pedidos em array, inverte a ordem (mais recente primeiro)
+                        userOrders.value = Object.keys(data).map(key => ({
+                            id: key, 
+                            ...data[key]
+                        })).reverse(); 
+                    } else {
+                        userOrders.value = [];
+                    }
+                    currentPageOrders.value = 1; 
+                } catch (error) {
+                    console.error("Erro ao carregar pedidos do Firebase:", error);
+                    userOrders.value = [];
+                }
+            };
+
+            // Observa a alteração do carrinho e salva no local ou no Firebase
+            watch(cartItems, () => {
+                if (isLoggedIn.value) {
+                    saveCartToFirebase();
+                } else {
+                    saveCartLocal();
+                }
+            }, { deep: true });
+
+            // -----------------------------------------------------------
+            // INICIALIZAÇÃO E AUTENTICAÇÃO
+            // -----------------------------------------------------------
+
+            const fetchProductsFromFirebase = async () => {
+                if (!db) {
+                    isLoading.value = false;
+                    return;
+                }
+                
+                isLoading.value = true;
+                const productsRef = db.ref('produtos'); 
+
+                try {
+                    const snapshot = await productsRef.get();
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        const loadedProducts = [];
+
+                        for (const key in data) {
+                            if (data.hasOwnProperty(key)) {
+                                const productData = data[key];
+                                loadedProducts.push({
+                                    id: key, 
+                                    name: productData.name || 'Produto sem nome',
+                                    imageUrl: productData.imageUrl || '',
+                                    price: parseFloat(productData.price) || 0, 
+                                    quantityToAdd: 1 
+                                });
+                            }
+                        }
+                        products.value = loadedProducts;
+                    } else {
+                        products.value = [];
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar produtos do Firebase:", error);
+                    alert("Erro ao carregar o catálogo de produtos. Verifique sua conexão e regras do Firebase.");
+                } finally {
+                    isLoading.value = false;
+                }
+            };
+
+            const initializeApp = () => {
+                if (!auth) {
+                    alert("Erro: Serviço de Autenticação do Firebase não carregado.");
+                    return;
+                }
+                
+                // Monitora o estado da autenticação (auto-login/logout)
+                auth.onAuthStateChanged(async (user) => {
+                    const cartBeforeAuth = cartItems.value.slice(); // Salva o carrinho anônimo
+
+                    if (user) {
+                        // Usuário Logado
+                        userId.value = user.uid;
+                        isLoggedIn.value = true;
+                        
+                        await loadUserProfileFromFirebase(user.uid);
+                        await loadCartFromFirebase();
+                        await loadOrdersFromFirebase();
+                        
+                        // Transferência do carrinho anônimo, se o carrinho do Auth estava vazio
+                        if (cartItems.value.length === 0 && cartBeforeAuth.length > 0) {
+                            cartItems.value = cartBeforeAuth; 
+                            localStorage.removeItem(STORAGE_CART_KEY); 
+                            alert(`🎉 Seu carrinho anônimo foi recuperado e salvo em sua conta!`);
+                        }
+                        
+                    } else {
+                        // Usuário Desconectado ou Anônimo
+                        userId.value = null;
+                        isLoggedIn.value = false;
+                        userProfile.value = { name: 'Convidado', email: '', address: createEmptyAddress() };
+                        userOrders.value = [];
+                        loadCartLocal(); // Carrega o carrinho anônimo
+                    }
+                });
+            };
+            
+            onMounted(() => {
+                fetchProductsFromFirebase();
+                initializeApp(); 
+            });
+
+            // --- 2. PROPRIEDADES COMPUTADAS ---
+            // (Sem alteração relevante)
+            
+            const formattedAddress = computed(() => {
+                const addr = userProfile.value.address;
+                if (!addr || !addr.street || !addr.number || !addr.city) {
+                    return ''; // Endereço incompleto/vazio
+                }
+                let parts = [];
+                parts.push(`${addr.street}, ${addr.number}`);
+                if (addr.complement) {
+                    parts.push(`Comp: ${addr.complement}`);
+                }
+                parts.push(addr.neighborhood);
+                parts.push(`${addr.city} (CEP: ${addr.zipCode})`);
+                
+                return parts.join(' | ');
+            });
+            
+            const formatOrderAddress = (addr) => {
+                if (!addr || typeof addr === 'string') {
+                    // Trata o caso de pedidos antigos que usavam a string única (fallback)
+                    return addr || 'Endereço não informado'; 
+                }
+                
+                let parts = [];
+                parts.push(`${addr.street}, ${addr.number}`);
+                if (addr.complement) {
+                    parts.push(`Comp: ${addr.complement}`);
+                }
+                parts.push(addr.neighborhood);
+                parts.push(`${addr.city} (CEP: ${addr.zipCode})`);
+                
+                return parts.join(' | ');
+            };
+            
+
+            const totalCartItems = computed(() => {
+                return cartItems.value.reduce((total, item) => total + item.quantity, 0);
+            });
+
+            const totalCartPrice = computed(() => {
+                return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0);
+            });
+            
+            const totalOrdersCount = computed(() => {
+                return userOrders.value.length;
+            });
+
+            const itemsPerPageOrders = 5;
+
+            const totalPagesOrders = computed(() => {
+                return Math.ceil(userOrders.value.length / itemsPerPageOrders);
+            });
+
+            const paginatedOrders = computed(() => {
+                const start = (currentPageOrders.value - 1) * itemsPerPageOrders;
+                const end = start + itemsPerPageOrders;
+                return userOrders.value.slice(start, end);
+            });
+
+            // --- 3. MÉTODOS DE AÇÃO (AUTENTICAÇÃO COM FIREBASE AUTH) ---
+            
+            const openProfileModal = (view = 'login') => {
+                loginView.value = view;
+                isProfileModalOpen.value = true;
+            };
+
+            const closeProfileModal = () => {
+                isProfileModalOpen.value = false;
+            };
+            
+            // NOVO: Handle Login
+            const handleLogin = async () => {
+                const { email, password } = tempLogin.value;
+                if (!email || !password) return alert("Preencha e-mail e senha.");
+
+                try {
+                    // 1. Faz o login usando Firebase Auth
+                    await auth.signInWithEmailAndPassword(email, password);
+                    // O onAuthStateChanged (linha 415) cuida do resto (carregar perfil/carrinho/pedidos)
+                    closeProfileModal();
+                } catch (error) {
+                    alert(getFirebaseErrorMessage(error));
+                }
+            };
+
+            // NOVO: Handle Register
+            const handleRegister = async () => { 
+                const { name, email, password } = tempRegister.value;
+                if (!name || !email || password.length < 6) {
+                    return alert("Preencha todos os campos corretamente (Nome, E-mail, Senha > 6 chars).");
+                }
+                
+                try {
+                    // 1. Cria o usuário usando Firebase Auth
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    const user = userCredential.user;
+
+                    // 2. Atualiza o nome de exibição no Auth
+                    await user.updateProfile({ displayName: name });
+
+                    // 3. Salva os metadados no Realtime Database (usando o UID do Auth como chave)
+                    const userRef = db.ref(`usuarios/${user.uid}`);
+                    await userRef.set({
+                        name: name,
+                        email: email,
+                        address: createEmptyAddress() 
+                    });
+                    
+                    // O onAuthStateChanged (linha 415) cuida da transferência do carrinho anônimo
+                    closeProfileModal();
+
+                } catch (error) {
+                    alert(getFirebaseErrorMessage(error));
+                }
+            };
+
+            // NOVO: Handle Password Recovery
+            const handlePasswordRecovery = async () => { 
+                const email = tempRecover.value.email;
+                if (!email) return alert("Por favor, insira um e-mail.");
+                
+                try {
+                    // Envia o link de redefinição de senha
+                    await auth.sendPasswordResetEmail(email);
+                    
+                    alert(`✅ E-mail de redefinição enviado para: ${email}. Verifique sua caixa de entrada e spam.`);
+                    
+                    loginView.value = 'login';
+                    tempRecover.value.email = ''; 
+                } catch (error) {
+                    alert(getFirebaseErrorMessage(error));
+                }
+            };
+
+
+            const logout = async () => {
+                try {
+                    await auth.signOut();
+                    // O onAuthStateChanged (linha 415) cuida do resto (limpar estado local)
+                } catch (error) {
+                    console.error("Erro ao fazer logout:", error);
+                    alert("Erro ao sair. Tente novamente.");
+                }
+                currentView.value = 'produtos';
+            };
+
+            const changePageOrders = (page) => {
+                if (page >= 1 && page <= totalPagesOrders.value) {
+                    currentPageOrders.value = page;
+                }
+            };
+            
+            // --- 4. FUNÇÕES DE CARRINHO E CHECKOUT ---
+            // (Sem alteração relevante)
+            
+            const ensureMinQuantity = (product) => {
+                if (product.quantityToAdd < 1 || isNaN(product.quantityToAdd)) {
+                    product.quantityToAdd = 1;
+                }
+            };
+
+            const addToCart = (product, quantity) => {
+                const qty = Math.max(1, parseInt(quantity) || 1);
+                
+                const existingItem = cartItems.value.find(item => item.id === product.id);
+                
+                if (existingItem) {
+                    existingItem.quantity += qty;
+                } else {
+                    cartItems.value.push({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        imageUrl: product.imageUrl,
+                        quantity: qty,
+                    });
+                }
+            };
+
+            const updateCartQuantity = (item, delta) => {
+                const newQuantity = item.quantity + delta;
+                
+                if (newQuantity < 1) {
+                    removeFromCart(item.id);
+                } else {
+                    item.quantity = newQuantity;
+                }
+            };
+
+            const removeFromCart = (productId) => {
+                cartItems.value = cartItems.value.filter(item => item.id !== productId);
+            };
+            
+            const checkout = () => {
+                if (totalCartItems.value === 0) {
+                    alert("Seu carrinho está vazio!");
+                    return;
+                }
+
+                if (!isLoggedIn.value) {
+                    alert("Por favor, faça login ou cadastre-se para finalizar a compra.");
+                    openProfileModal('login');
+                    return;
+                }
+                
+                if (formattedAddress.value.trim() === '') {
+                    alert("Por favor, preencha seu endereço para finalizar o pedido.");
+                    openProfileModal('address'); 
+                    return;
+                }
+                
+                openProfileModal('address');
+            };
+            
+            const saveAddressAndCheckout = async () => {
+                const addr = userProfile.value.address;
+                if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || !addr.zipCode) {
+                    alert("Por favor, preencha todos os campos obrigatórios do endereço (Rua, Número, Bairro, Cidade, CEP).");
+                    return;
+                }
+
+                const userRef = db.ref(`usuarios/${userId.value}`);
+
+                try {
+                    // Atualiza o endereço no Realtime Database
+                    await userRef.update({ address: userProfile.value.address });
+                    closeProfileModal();
+                    
+                    confirmOrder(); 
+                } catch (error) {
+                    console.error("Erro ao salvar endereço:", error);
+                    alert("Erro ao salvar o endereço. Tente novamente.");
+                }
+            };
+            
+            // --- 5. FINALIZAÇÃO DO PEDIDO (FIREBASE + WHATSAPP) ---
+            // (Sem alteração relevante)
+            
+            const sendOrderDetailsToWhatsApp = (orderId, orderData) => {
+                
+                const customerAddress = formatOrderAddress(orderData.customer.address);
+
                 const itemsList = orderData.items.map(item => 
-                    `* ${item.quantity}x ${item.name} (R$ ${item.price.toFixed(2)})`
+                    `* ${item.quantity}x ${item.name} (R$ ${item.price.toFixed(2).replace('.', ',')})`
                 ).join('\n');
 
-                // 2. Monta a mensagem completa
                 const message = `
                     🛒 *NOVO PEDIDO RECEBIDO!* 🛒
 
                     *ID do Pedido:* #${orderId.substring(0, 8).toUpperCase()}
                     *Data:* ${orderData.date}
-                    *Total:* R$ ${orderData.total.toFixed(2)}
+                    *Total:* R$ ${orderData.total.toFixed(2).replace('.', ',')}
 
                     *CLIENTE:*
                     *Nome:* ${orderData.customer.name}
                     *Email:* ${orderData.customer.email}
-                    *Endereço:* ${orderData.customer.address}
+                    *Endereço:* ${customerAddress}
 
                     *ITENS DO PEDIDO:*
                     ${itemsList}
@@ -941,73 +1323,78 @@
                     *(Confirme o pagamento e o envio. Agradecemos a preferência!)*
                 `.trim();
 
-                // 3. Codifica a mensagem e cria o link da API do WhatsApp
                 const encodedMessage = encodeURIComponent(message);
                 const whatsappLink = `https://wa.me/55${WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
-                // 4. Abre o link em uma nova aba
                 window.open(whatsappLink, '_blank');
-            };
+            };
 
+            const confirmOrder = async () => {
+                if (!isLoggedIn.value || !userId.value) {
+                     alert("Você precisa estar logado para finalizar o pedido.");
+                     return;
+                }
+                if (formattedAddress.value.trim() === '') {
+                     alert("Por favor, preencha o endereço de entrega.");
+                     openProfileModal('address');
+                     return;
+                }
+                if (totalCartItems.value === 0) {
+                    alert("Seu carrinho está vazio!");
+                    return;
+                }
 
-            /**
-             * LÓGICA DE CONFIRMAÇÃO DE PEDIDO (agora com WhatsApp)
-             */
-            const confirmOrder = async () => {
-                if (!isLoggedIn.value || !userId.value) return;
+                const newOrderRef = db.ref(`pedidos/${userId.value}`).push();
 
-                const db = firebase.database();
-                const newOrderRef = db.ref(`pedidos/${userId.value}`).push();
+                const orderData = {
+                    date: new Date().toLocaleString('pt-BR'),
+                    total: totalCartPrice.value,
+                    status: 'Processando',
+                    items: cartItems.value.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity
+                    })),
+                    customer: {
+                        name: userProfile.value.name,
+                        email: userProfile.value.email,
+                        address: userProfile.value.address 
+                    }
+                };
 
-                const orderData = {
-                    date: new Date().toLocaleString('pt-BR'),
-                    total: totalCartPrice.value,
-                    status: 'Processando',
-                    items: cartItems.value,
-                    customer: {
-                        name: userProfile.value.name,
-                        email: userProfile.value.email,
-                        address: userProfile.value.address
-                    }
-                };
+                try {
+                    await newOrderRef.set(orderData);
+                    
+                    sendOrderDetailsToWhatsApp(newOrderRef.key, orderData);
+                    
+                    cartItems.value = []; 
+                    await loadOrdersFromFirebase(); 
+                    currentView.value = 'pedidos';
 
-                try {
-                    // 1. Salva no Firebase
-                    await newOrderRef.set(orderData);
-                    
-                    // 2. Envia para o WhatsApp (abre nova aba/app)
-                    sendOrderDetailsToWhatsApp(newOrderRef.key, orderData);
+                } catch (error) {
+                    console.error("Erro ao finalizar pedido:", error);
+                    alert("Ocorreu um erro ao processar seu pedido. Tente novamente.");
+                }
+            };
+            
+            return {
+                // Estado e Computadas
+                currentView, products, cartItems, userOrders, userProfile, isLoggedIn, isLoading,
+                isProfileModalOpen, loginView, tempLogin, tempRegister, tempRecover, 
+                totalCartItems, totalCartPrice, totalOrdersCount, 
+                currentPageOrders, totalPagesOrders, paginatedOrders, 
+                formattedAddress, 
+                formatOrderAddress, 
 
-                    alert(`✅ Pedido ${newOrderRef.key.substring(0, 8)} finalizado! Redirecionando para o WhatsApp para confirmação.`);
-                    
-                    // 3. Limpa o carrinho e atualiza o histórico
-                    cartItems.value = []; 
-                    await loadOrdersFromFirebase();
-                    currentView.value = 'pedidos';
-
-                } catch (error) {
-                    console.error("Erro ao finalizar pedido:", error);
-                    alert("Ocorreu um erro ao processar seu pedido. Tente novamente.");
-                }
-            };
-            
-            return {
-                // Estado
-                currentView, products, cartItems, userOrders, userProfile, isLoggedIn, isLoading,
-                isProfileModalOpen, loginView, tempLogin, tempRegister,
-
-                // Computadas
-                totalCartItems, totalCartPrice,
-
-                // Métodos de UI
-                openProfileModal, closeProfileModal, ensureMinQuantity,
-
-                // Métodos de Autenticação
-                simulateLogin, simulateRegister, logout,
-
-                // Métodos de E-commerce
-                addToCart, updateCartQuantity, removeFromCart, checkout, saveAddressAndCheckout
-            };
-        }
-    }).mount('#app');
-  </script>
+                // Métodos
+                openProfileModal, closeProfileModal, ensureMinQuantity,
+                handleLogin, handleRegister, logout, handlePasswordRecovery, 
+                addToCart, updateCartQuantity, removeFromCart, checkout, saveAddressAndCheckout, confirmOrder,
+                changePageOrders 
+            };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>
