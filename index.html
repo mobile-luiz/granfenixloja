@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-commerce Dinâmico com Firebase Authentication e WhatsApp</title>
+    <title>E-commerce Final com Vue 3, Firebase Auth e Realtime DB</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     
     <style>
-        /* --- Estilos (Não alterados) --- */
+        /* --- Estilos (Mantidos do último código) --- */
         :root {
             --primary-color: #ff8c00; 
             --secondary-color: #333;
@@ -749,7 +749,7 @@
         </div>
     </div>
     
-    <script>
+   <script>
     // --- 1. CONFIGURAÇÃO DO FIREBASE ---
     // ⚠️ ATENÇÃO: Substitua pelos seus dados REAIS do Firebase!
     const firebaseConfig = {
@@ -763,33 +763,37 @@
         measurementId: "G-SQ4QNTFXCM"
     }; 
 
+    let auth = null;
+    let db = null;
+
     const initializeFirebase = () => {
         if (typeof firebase !== 'undefined' && typeof firebase.initializeApp !== 'undefined') {
             try {
-                const app = firebase.initializeApp(firebaseConfig);
-                return {
-                    app,
-                    auth: firebase.auth(), // NOVO: Objeto de autenticação
-                    db: firebase.database() // Objeto de database
-                };
+                // Previne a inicialização duplicada do aplicativo
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                
+                auth = firebase.auth();
+                db = firebase.database();
+                console.log("✅ Firebase inicializado com sucesso.");
+                
             } catch (e) {
-                console.error("Erro ao inicializar Firebase:", e);
-                return null;
+                console.error("❌ ERRO GRAVE: Falha ao inicializar o Firebase.", e);
+                alert("Erro fatal ao carregar o sistema. Verifique o console.");
             }
+        } else {
+            console.error("❌ ERRO GRAVE: Firebase SDK não carregado. Verifique os links CDN.");
+            alert("Erro fatal: Firebase SDK ausente.");
         }
-        console.error("Firebase SDK não carregado. Verifique os links CDN.");
-        return null;
     };
 
-    const firebaseServices = initializeFirebase();
-    const auth = firebaseServices ? firebaseServices.auth : null;
-    const db = firebaseServices ? firebaseServices.db : null;
+    initializeFirebase();
 
-    // 🎯 LÓGICA DE PERSISTÊNCIA 🎯
+    // 🎯 CONSTANTES DE LÓGICA 🎯
     const STORAGE_CART_KEY = 'anonymous_cart'; 
-    const WHATSAPP_NUMBER = '81995038049'; // Seu número do WhatsApp
+    const WHATSAPP_NUMBER = '81995038049'; 
 
-    // --- Não precisamos mais salvar o userId no localStorage, o Firebase Auth faz isso! ---
     // --- Função para criar a estrutura vazia do endereço ---
     const createEmptyAddress = () => ({
         street: '',
@@ -800,11 +804,13 @@
         zipCode: ''
     });
     
-    // --- Funções de Ajuda ---
+    // --- Funções de Ajuda de Erro do Firebase Auth ---
     const getFirebaseErrorMessage = (error) => {
+        console.error("Erro Firebase Code:", error.code, "Mensagem:", error.message);
+        
         switch (error.code) {
             case 'auth/email-already-in-use':
-                return 'Este e-mail já está cadastrado.';
+                return 'Este e-mail já está cadastrado. Tente fazer login.';
             case 'auth/invalid-email':
                 return 'O e-mail fornecido é inválido.';
             case 'auth/weak-password':
@@ -814,9 +820,12 @@
                 return 'E-mail ou senha incorretos.';
             case 'auth/requires-recent-login':
                 return 'É necessário fazer o login novamente para realizar esta ação.';
+            case 'auth/operation-not-allowed':
+                return 'O login por e-mail/senha está desativado no console do Firebase.';
+            case 'auth/network-request-failed':
+                return 'Problema de conexão com a internet. Tente novamente.';
             default:
-                console.error("Erro de Firebase Auth:", error.message);
-                return 'Ocorreu um erro. Tente novamente.';
+                return `Ocorreu um erro desconhecido: ${error.code}. Tente novamente.`;
         }
     };
     // -----------------------------
@@ -830,7 +839,6 @@
             const isLoggedIn = ref(false); 
             const isLoading = ref(true); 
 
-            // userId agora é o UID do Firebase Auth
             const userId = ref(null); 
             
             const userProfile = ref({
@@ -856,7 +864,6 @@
             // -----------------------------------------------------------
 
             const saveCartLocal = () => {
-                // Salva o carrinho localmente apenas se não estiver logado
                 if (!isLoggedIn.value) {
                     localStorage.setItem(STORAGE_CART_KEY, JSON.stringify(cartItems.value));
                 }
@@ -902,7 +909,7 @@
                     const snapshot = await cartRef.get();
                     if (snapshot.exists()) {
                         const loadedCart = snapshot.val();
-                        // Garante que é um array, necessário se houver itens
+                        // Garante que é um array (necessário se houver itens)
                         cartItems.value = Array.isArray(loadedCart) ? loadedCart.map(item => ({...item, quantityToAdd: 1})) : [];
                     } else {
                         cartItems.value = [];
@@ -922,14 +929,23 @@
                     const snapshot = await userRef.get();
                     if (snapshot.exists()) {
                         const userData = snapshot.val();
-                        userProfile.value.name = userData.name || 'Usuário';
+                        userProfile.value.name = userData.name || auth.currentUser.displayName || 'Usuário';
                         userProfile.value.email = userData.email || auth.currentUser.email;
-                        userProfile.value.address = userData.address || createEmptyAddress();
+                        // Usa dados salvos, ou endereço vazio como fallback
+                        userProfile.value.address = userData.address || createEmptyAddress(); 
                     } else {
-                        // Perfil incompleto (apenas Auth, sem metadados no DB)
+                        // Se não há perfil no RTDB, usa dados do Auth e cria endereço vazio
                         userProfile.value.name = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];
                         userProfile.value.email = auth.currentUser.email;
                         userProfile.value.address = createEmptyAddress();
+                        
+                        // Opcional: Salva o perfil mínimo no RTDB se ele não existir
+                        userRef.set({
+                            name: userProfile.value.name,
+                            email: userProfile.value.email,
+                            address: userProfile.value.address,
+                            createdAt: firebase.database.ServerValue.TIMESTAMP 
+                        }).catch(e => console.warn("Falha ao criar perfil mínimo no DB:", e));
                     }
                 } catch (error) {
                     console.error("Erro ao carregar perfil do DB:", error);
@@ -945,10 +961,11 @@
                 const ordersRef = db.ref(`pedidos/${userId.value}`); 
                 
                 try {
-                    const snapshot = await ordersRef.get();
+                    // Ordena por chave para pegar os pedidos em ordem de criação (assumindo que as chaves são timestamps)
+                    const snapshot = await ordersRef.orderByKey().get(); 
                     if (snapshot.exists()) {
                         const data = snapshot.val();
-                        // Converte objeto de pedidos em array, inverte a ordem (mais recente primeiro)
+                        // Converte objeto de pedidos em array e inverte para o mais recente primeiro
                         userOrders.value = Object.keys(data).map(key => ({
                             id: key, 
                             ...data[key]
@@ -973,7 +990,7 @@
             }, { deep: true });
 
             // -----------------------------------------------------------
-            // INICIALIZAÇÃO E AUTENTICAÇÃO
+            // INICIALIZAÇÃO, PRODUTOS E AUTENTICAÇÃO
             // -----------------------------------------------------------
 
             const fetchProductsFromFirebase = async () => {
@@ -982,7 +999,6 @@
                     return;
                 }
                 
-                isLoading.value = true;
                 const productsRef = db.ref('produtos'); 
 
                 try {
@@ -1009,19 +1025,18 @@
                     }
                 } catch (error) {
                     console.error("Erro ao buscar produtos do Firebase:", error);
-                    alert("Erro ao carregar o catálogo de produtos. Verifique sua conexão e regras do Firebase.");
+                    alert("Erro ao carregar o catálogo. Verifique sua conexão.");
                 } finally {
-                    isLoading.value = false;
+                    // Não encerra o loading aqui. O onAuthStateChanged fará isso.
                 }
             };
 
             const initializeApp = () => {
                 if (!auth) {
-                    alert("Erro: Serviço de Autenticação do Firebase não carregado.");
+                    isLoading.value = false;
                     return;
                 }
                 
-                // Monitora o estado da autenticação (auto-login/logout)
                 auth.onAuthStateChanged(async (user) => {
                     const cartBeforeAuth = cartItems.value.slice(); // Salva o carrinho anônimo
 
@@ -1034,11 +1049,12 @@
                         await loadCartFromFirebase();
                         await loadOrdersFromFirebase();
                         
-                        // Transferência do carrinho anônimo, se o carrinho do Auth estava vazio
+                        // Transfere o carrinho anônimo para o Firebase se o carrinho do DB estava vazio
                         if (cartItems.value.length === 0 && cartBeforeAuth.length > 0) {
                             cartItems.value = cartBeforeAuth; 
                             localStorage.removeItem(STORAGE_CART_KEY); 
-                            alert(`🎉 Seu carrinho anônimo foi recuperado e salvo em sua conta!`);
+                            // O watch cuidará de salvar no Firebase.
+                            console.log(`Carrinho anônimo (${cartBeforeAuth.length} itens) transferido.`);
                         }
                         
                     } else {
@@ -1049,16 +1065,16 @@
                         userOrders.value = [];
                         loadCartLocal(); // Carrega o carrinho anônimo
                     }
+                    isLoading.value = false;
                 });
             };
             
             onMounted(() => {
-                fetchProductsFromFirebase();
-                initializeApp(); 
+                // Carrega produtos e depois inicia a observação do estado do Auth
+                fetchProductsFromFirebase().then(initializeApp);
             });
 
-            // --- 2. PROPRIEDADES COMPUTADAS ---
-            // (Sem alteração relevante)
+            // --- 2. PROPRIEDADES COMPUTADAS (Calculadas) ---
             
             const formattedAddress = computed(() => {
                 const addr = userProfile.value.address;
@@ -1078,7 +1094,6 @@
             
             const formatOrderAddress = (addr) => {
                 if (!addr || typeof addr === 'string') {
-                    // Trata o caso de pedidos antigos que usavam a string única (fallback)
                     return addr || 'Endereço não informado'; 
                 }
                 
@@ -1093,7 +1108,6 @@
                 return parts.join(' | ');
             };
             
-
             const totalCartItems = computed(() => {
                 return cartItems.value.reduce((total, item) => total + item.quantity, 0);
             });
@@ -1102,9 +1116,7 @@
                 return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0);
             });
             
-            const totalOrdersCount = computed(() => {
-                return userOrders.value.length;
-            });
+            const totalOrdersCount = computed(() => userOrders.value.length);
 
             const itemsPerPageOrders = 5;
 
@@ -1118,7 +1130,7 @@
                 return userOrders.value.slice(start, end);
             });
 
-            // --- 3. MÉTODOS DE AÇÃO (AUTENTICAÇÃO COM FIREBASE AUTH) ---
+            // --- 3. MÉTODOS DE AUTENTICAÇÃO E PERFIL ---
             
             const openProfileModal = (view = 'login') => {
                 loginView.value = view;
@@ -1129,59 +1141,67 @@
                 isProfileModalOpen.value = false;
             };
             
-            // NOVO: Handle Login
+            // Login com Firebase Auth
             const handleLogin = async () => {
+                if (!auth) return alert("Sistema de autenticação indisponível.");
                 const { email, password } = tempLogin.value;
                 if (!email || !password) return alert("Preencha e-mail e senha.");
 
                 try {
-                    // 1. Faz o login usando Firebase Auth
                     await auth.signInWithEmailAndPassword(email, password);
-                    // O onAuthStateChanged (linha 415) cuida do resto (carregar perfil/carrinho/pedidos)
                     closeProfileModal();
+                    tempLogin.value = { email: '', password: '' }; // Limpa campos
                 } catch (error) {
                     alert(getFirebaseErrorMessage(error));
                 }
             };
 
-            // NOVO: Handle Register
+            // Cadastro com Firebase Auth e criação de metadados no DB
             const handleRegister = async () => { 
+                if (!auth || !db) return alert("Sistema de autenticação indisponível.");
                 const { name, email, password } = tempRegister.value;
+                
                 if (!name || !email || password.length < 6) {
                     return alert("Preencha todos os campos corretamente (Nome, E-mail, Senha > 6 chars).");
                 }
                 
                 try {
-                    // 1. Cria o usuário usando Firebase Auth
+                    // 1. Cria o usuário no Auth
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                     const user = userCredential.user;
 
                     // 2. Atualiza o nome de exibição no Auth
                     await user.updateProfile({ displayName: name });
 
-                    // 3. Salva os metadados no Realtime Database (usando o UID do Auth como chave)
+                    // 3. Salva os metadados no Realtime Database
                     const userRef = db.ref(`usuarios/${user.uid}`);
                     await userRef.set({
                         name: name,
                         email: email,
-                        address: createEmptyAddress() 
+                        address: createEmptyAddress(),
+                        createdAt: firebase.database.ServerValue.TIMESTAMP 
                     });
                     
-                    // O onAuthStateChanged (linha 415) cuida da transferência do carrinho anônimo
+                    alert(`🎉 Cadastro realizado com sucesso! Bem-vindo(a), ${name}.`);
+                    tempRegister.value = { name: '', email: '', password: '' }; // Limpa campos
                     closeProfileModal();
 
                 } catch (error) {
                     alert(getFirebaseErrorMessage(error));
+                    // Se a autenticação falhar, remove qualquer login temporário que possa ter ocorrido
+                    if (auth.currentUser) {
+                        auth.signOut();
+                    }
                 }
             };
 
-            // NOVO: Handle Password Recovery
+            // Recuperação de senha com Firebase Auth
             const handlePasswordRecovery = async () => { 
+                if (!auth) return alert("Sistema de autenticação indisponível.");
                 const email = tempRecover.value.email;
                 if (!email) return alert("Por favor, insira um e-mail.");
                 
                 try {
-                    // Envia o link de redefinição de senha
                     await auth.sendPasswordResetEmail(email);
                     
                     alert(`✅ E-mail de redefinição enviado para: ${email}. Verifique sua caixa de entrada e spam.`);
@@ -1193,11 +1213,12 @@
                 }
             };
 
-
             const logout = async () => {
+                if (!auth) return;
                 try {
                     await auth.signOut();
-                    // O onAuthStateChanged (linha 415) cuida do resto (limpar estado local)
+                    // O onAuthStateChanged cuida da limpeza do estado local
+                    alert("Sessão encerrada com sucesso.");
                 } catch (error) {
                     console.error("Erro ao fazer logout:", error);
                     alert("Erro ao sair. Tente novamente.");
@@ -1212,7 +1233,6 @@
             };
             
             // --- 4. FUNÇÕES DE CARRINHO E CHECKOUT ---
-            // (Sem alteração relevante)
             
             const ensureMinQuantity = (product) => {
                 if (product.quantityToAdd < 1 || isNaN(product.quantityToAdd)) {
@@ -1236,6 +1256,7 @@
                         quantity: qty,
                     });
                 }
+                // O watch cuidará do saveLocal/saveFirebase
             };
 
             const updateCartQuantity = (item, delta) => {
@@ -1270,10 +1291,13 @@
                     return;
                 }
                 
+                // Se tudo estiver OK, o usuário deve revisar o endereço antes de confirmar
                 openProfileModal('address');
             };
             
             const saveAddressAndCheckout = async () => {
+                if (!db || !userId.value) return;
+
                 const addr = userProfile.value.address;
                 if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || !addr.zipCode) {
                     alert("Por favor, preencha todos os campos obrigatórios do endereço (Rua, Número, Bairro, Cidade, CEP).");
@@ -1285,9 +1309,9 @@
                 try {
                     // Atualiza o endereço no Realtime Database
                     await userRef.update({ address: userProfile.value.address });
-                    closeProfileModal();
                     
-                    confirmOrder(); 
+                    closeProfileModal();
+                    confirmOrder(); // Procede com a finalização
                 } catch (error) {
                     console.error("Erro ao salvar endereço:", error);
                     alert("Erro ao salvar o endereço. Tente novamente.");
@@ -1295,7 +1319,6 @@
             };
             
             // --- 5. FINALIZAÇÃO DO PEDIDO (FIREBASE + WHATSAPP) ---
-            // (Sem alteração relevante)
             
             const sendOrderDetailsToWhatsApp = (orderId, orderData) => {
                 
@@ -1326,24 +1349,21 @@
                 const encodedMessage = encodeURIComponent(message);
                 const whatsappLink = `https://wa.me/55${WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
+                // Abre o link do WhatsApp
                 window.open(whatsappLink, '_blank');
             };
 
             const confirmOrder = async () => {
-                if (!isLoggedIn.value || !userId.value) {
-                     alert("Você precisa estar logado para finalizar o pedido.");
-                     return;
-                }
-                if (formattedAddress.value.trim() === '') {
-                     alert("Por favor, preencha o endereço de entrega.");
-                     openProfileModal('address');
-                     return;
+                if (!isLoggedIn.value || !userId.value || !db) {
+                    alert("Erro de sistema: Você precisa estar logado.");
+                    return;
                 }
                 if (totalCartItems.value === 0) {
                     alert("Seu carrinho está vazio!");
                     return;
                 }
 
+                // Cria uma nova chave única para o pedido (timestamp-based key)
                 const newOrderRef = db.ref(`pedidos/${userId.value}`).push();
 
                 const orderData = {
@@ -1359,18 +1379,21 @@
                     customer: {
                         name: userProfile.value.name,
                         email: userProfile.value.email,
-                        address: userProfile.value.address 
+                        address: userProfile.value.address // Endereço atual salvo
                     }
                 };
 
                 try {
                     await newOrderRef.set(orderData);
                     
+                    // Notifica via WhatsApp
                     sendOrderDetailsToWhatsApp(newOrderRef.key, orderData);
                     
+                    // Limpa o carrinho e atualiza pedidos
                     cartItems.value = []; 
                     await loadOrdersFromFirebase(); 
                     currentView.value = 'pedidos';
+                    alert("Pedido finalizado com sucesso! Redirecionando para o WhatsApp para confirmar.");
 
                 } catch (error) {
                     console.error("Erro ao finalizar pedido:", error);
@@ -1384,8 +1407,7 @@
                 isProfileModalOpen, loginView, tempLogin, tempRegister, tempRecover, 
                 totalCartItems, totalCartPrice, totalOrdersCount, 
                 currentPageOrders, totalPagesOrders, paginatedOrders, 
-                formattedAddress, 
-                formatOrderAddress, 
+                formattedAddress, formatOrderAddress, 
 
                 // Métodos
                 openProfileModal, closeProfileModal, ensureMinQuantity,
@@ -1395,6 +1417,4 @@
             };
         }
     }).mount('#app');
-    </script>
-</body>
-</html>
+</script>
