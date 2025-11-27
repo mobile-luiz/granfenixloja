@@ -846,13 +846,9 @@
     // ⚠️ ATENÇÃO: Substitua pelos seus dados REAIS do Firebase!
     const firebaseConfig = {
         apiKey: "AIzaSyAnGyAYBthXQs5rEylnLXCxOVQKKN1FP34",
-        authDomain: "grafica-619fd.firebaseapp.com",
+       
         databaseURL: "https://grafica-619fd-default-rtdb.firebaseio.com", 
-        projectId: "grafica-619fd",
-        storageBucket: "grafica-619fd.firebasestorage.app",
-        messagingSenderId: "1022124441596",
-        appId: "1:1022124441596:web:d6f25056f38a6babc67c79",
-        measurementId: "G-SQ4QNTFXCM"
+     
     }; 
 
     let auth = null;
@@ -884,7 +880,7 @@
 
     // 🎯 CONSTANTES DE LÓGICA 🎯
     const STORAGE_CART_KEY = 'anonymous_cart'; 
-    const WHATSAPP_NUMBER = '81995038049'; 
+    const WHATSAPP_NUMBER = '81988112191'; 
 
     // --- Função para criar a estrutura vazia do endereço ---
     const createEmptyAddress = () => ({
@@ -1444,36 +1440,10 @@
 
                 // Formata o valor total dentro da função, se necessário, ou usa o valor numérico
                 const formattedTotal = orderData.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                
-                // Carrega o WhatsApp do perfil (se disponível) ou do campo tempRegister (se estiver no modal)
-                // Nota: O WhatsApp é salvo no perfil durante o registro. Ao carregar o perfil do DB
-                // na inicialização, ele não é colocado no userProfile (como visto em loadUserProfileFromFirebase).
-                // Para usar o WhatsApp salvo, você precisaria carregar ele no userProfile.
-                // Vou assumir que o número do cliente está no perfil do usuário no DB.
-                
-                // Vamos buscar o whatsapp do perfil do cliente no DB, já que salvamos ele no registro.
-                // Mas, como a orderData já tem todos os dados do cliente (exceto o whatsapp no momento da orderData.customer),
-                // para garantir que pegamos o número, vamos fazer uma busca rápida no DB
-                // ou atualizar a loadUserProfileFromFirebase para incluir o whatsapp.
-                
-                // ALTERAÇÃO: Para simplicidade e seguindo a lógica da questão, vou garantir que o whatsapp 
-                // esteja no objeto `orderData.customer` se o usuário estiver logado.
-                
-                const customerWhatsapp = userProfile.value.whatsapp || 'Não informado'; 
-                // A prop userProfile.whatsapp não existe atualmente. Vamos adicioná-la no loadUserProfileFromFirebase 
-                // e garantir que ela esteja no objeto orderData.customer
+           
 
-                // A prop userProfile.whatsapp não foi adicionada no script, então não está disponível para uso
-                // no momento. Vamos garantir que ela seja incluída no objeto orderData, buscando diretamente
-                // do DB se necessário, ou atualizando o perfil de usuário.
-                
-                // Para a versão atual, vamos simplesmente adicionar a linha do WhatsApp ao objeto
-                // orderData.customer. A lógica de loadUserProfileFromFirebase precisaria ser atualizada
-                // para incluir `userProfile.value.whatsapp = userData.whatsapp || ''`
-                
-                // Assumindo que o campo `whatsapp` está salvo junto com o `name` e `email` no DB,
-                // vamos garantir que ele seja buscado ao carregar o perfil.
-                // **CORREÇÃO RÁPIDA:** Modificar `orderData` para incluir `whatsapp`.
+                const customerWhatsapp = userProfile.value.whatsapp || 'Não informado'; 
+          
                 
                 const itemsList = orderData.items.map(item => 
                     `* ${item.quantity}x ${item.name} (${(item.price * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})`
