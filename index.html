@@ -647,7 +647,7 @@
                         <div>
                             <img :src="product.imageUrl || 'https://via.placeholder.com/280x160?text=Sem+Imagem'" :alt="product.name" class="product-image">
                             <h3>{{ product.name }}</h3>
-                            <p>Preço unitário: R$ **{{ product.price.toFixed(2).replace('.', ',') }}**</p>
+                            <p>Preço unitário: **{{ formatCurrency(product.price) }}**</p> 
                         </div>
                         
                         <div>
@@ -682,7 +682,7 @@
                     <div class="cart-item" v-for="item in cartItems" :key="item.id">
                         <div class="cart-item-details">
                             **{{ item.name }}** <br>
-                            <em style="color: var(--text-light); font-size: 0.9em;">(R$ {{ item.price.toFixed(2).replace('.', ',') }} / unid.)</em>
+                            <em style="color: var(--text-light); font-size: 0.9em;">({{ formatCurrency(item.price) }} / unid.)</em>
                         </div>
                         <div class="cart-actions">
                             <button class="btn btn-primary" @click="updateCartQuantity(item, -1)" :disabled="item.quantity <= 1">-</button>
@@ -692,7 +692,7 @@
                         </div>
                         
                         <div class="item-subtotal">
-                            R$ **{{ (item.price * item.quantity).toFixed(2).replace('.', ',') }}**
+                            **{{ formatCurrency(item.price * item.quantity) }}**
                         </div>
                     </div>
                 </div>
@@ -704,7 +704,7 @@
 
                 <div v-if="cartItems.length > 0">
                     <div class="total-section">
-                        Total Geral: R$ **{{ totalCartPrice.toFixed(2).replace('.', ',') }}**
+                        Total Geral: **{{ formatCurrency(totalCartPrice) }}**
                     </div>
                     
                     <div class="checkout-area">
@@ -736,11 +736,11 @@
             </div>
 
             <div v-else-if="currentView === 'pedidos'">
-                <h2>Meus Pedidos (**{{ totalOrdersCount }}** pedidos)</h2>
+                <h2>Meus Pedidos (**{{ userOrders.length }}** pedidos)</h2>
                 
                 <div v-if="!isLoggedIn" style="text-align: center; padding: 30px; background-color: #fff0e5; border: 1px solid var(--primary-color); border-radius: 8px; color: var(--secondary-color);">
                     <i class="material-icons-round" style="font-size: 2em; margin-bottom: 10px; color: var(--primary-color);">lock</i>
-                    <p>Faça login para ver seus pedidos.</p>
+                    <p>Faça **login** para ver seus pedidos.</p>
                 </div>
                 <div v-else-if="userOrders.length === 0" style="text-align: center; padding: 30px; color: var(--text-light); background-color: #f9fafb; border-radius: 8px;">
                     <i class="material-icons-round" style="font-size: 1.5em; vertical-align: middle;">assignment</i>
@@ -779,7 +779,7 @@
                                     <div style="text-align: right;">
                                         Status: <span :style="{ color: order.status === 'Processando' ? 'orange' : 'var(--success-color)' }" style="font-weight: 700;">**{{ order.status }}**</span>
                                         <br>
-                                        <span style="font-size: 1.4em; font-weight: 800; color: var(--primary-dark);">R$ **{{ order.total.toFixed(2).replace('.', ',') }}**</span>
+                                        <span style="font-size: 1.4em; font-weight: 800; color: var(--primary-dark);">**{{ formatCurrency(order.total) }}**</span>
                                     </div>
                                 </div>
 
@@ -794,7 +794,7 @@
                                         <li v-for="item in order.items" :key="item.id" class="order-detail-item">
                                             <span>{{ item.quantity }}x</span> 
                                             {{ item.name }} 
-                                            <span>R$ {{ (item.price * item.quantity).toFixed(2).replace('.', ',') }}</span>
+                                            <span>{{ formatCurrency(item.price * item.quantity) }}</span>
                                         </li>
                                     </ul>
                                 </div>
@@ -821,73 +821,64 @@
                         </button>
                     </div>
                 </div>
-
             </div>
 
         </div>
 
         <div class="modal-overlay" v-if="isProfileModalOpen" @click.self="closeProfileModal">
             <div class="modal-container">
-                <button class="modal-close-btn" @click="closeProfileModal"><i class="material-icons-round">close</i></button>
+                <button class="modal-close-btn" @click="closeProfileModal">&times;</button>
 
                 <div v-if="loginView === 'login'">
-                    <h3>Acessar sua Conta</h3>
-                    <form @submit.prevent="handleLogin()">
-                        <input type="email" v-model="tempLogin.email" placeholder="Seu E-mail" required>
-                        <input type="password" v-model="tempLogin.password" placeholder="Sua Senha" required>
-                        
+                    <h3>Acesso do Cliente</h3>
+                    <form @submit.prevent="handleLogin">
+                        <input type="email" v-model="tempLogin.email" placeholder="E-mail" required>
+                        <input type="password" v-model="tempLogin.password" placeholder="Senha" required>
                         <div class="recover-link">
                             <button type="button" @click="loginView = 'recover'">Esqueci minha senha</button>
                         </div>
-
                         <button type="submit" class="btn btn-primary primary">Entrar</button>
                     </form>
-                    <button class="secondary" @click="loginView = 'register'">Ainda não tenho conta? Cadastrar</button>
+                    <button class="secondary" @click="loginView = 'register'">Ainda não tenho cadastro</button>
                 </div>
 
                 <div v-else-if="loginView === 'register'">
-                    <h3>Criar Conta</h3>
-                    <form @submit.prevent="handleRegister()">
-                        <input type="text" v-model="tempRegister.name" placeholder="Seu Nome Completo" required>
-                        <input type="email" v-model="tempRegister.email" placeholder="Seu Melhor E-mail" required>
-                        <input type="password" v-model="tempRegister.password" placeholder="Crie uma Senha Segura (min. 6 caracteres)" required minlength="6">
-                        
-                        <button type="submit" class="btn btn-primary primary">Cadastrar e Entrar</button>
+                    <h3>Novo Cadastro</h3>
+                    <form @submit.prevent="handleRegister">
+                        <input type="text" v-model="tempRegister.name" placeholder="Nome Completo" required>
+                        <input type="email" v-model="tempRegister.email" placeholder="E-mail" required>
+                        <input type="password" v-model="tempRegister.password" placeholder="Senha (min. 6 caracteres)" required>
+                        <button type="submit" class="btn btn-success primary">Cadastrar</button>
                     </form>
-                    <button class="secondary" @click="loginView = 'login'">Já tenho conta? Acessar</button>
+                    <button class="secondary" @click="loginView = 'login'">Voltar para o Login</button>
                 </div>
 
                 <div v-else-if="loginView === 'recover'">
                     <h3>Recuperar Senha</h3>
-                    <p style="font-size: 0.95em; margin-bottom: 25px; text-align: center; color: var(--text-light);">
-                        Informe seu e-mail de cadastro. Enviaremos um link para redefinição.
-                    </p>
-                    <form @submit.prevent="handlePasswordRecovery()">
-                        <input type="email" v-model="tempRecover.email" placeholder="E-mail de Cadastro" required>
-                        
+                    <form @submit.prevent="handlePasswordRecovery">
+                        <p style="font-size: 0.9em; color: var(--text-light); margin-bottom: 20px;">Insira seu e-mail para receber um link de redefinição.</p>
+                        <input type="email" v-model="tempRecover.email" placeholder="E-mail" required>
                         <button type="submit" class="btn btn-primary primary">Enviar Link</button>
                     </form>
-                    <button class="secondary" @click="loginView = 'login'">Voltar ao Login</button>
+                    <button class="secondary" @click="loginView = 'login'">Voltar para o Login</button>
                 </div>
 
-                <div v-else-if="loginView === 'address' && isLoggedIn">
+                <div v-else-if="loginView === 'address'">
                     <h3>Endereço de Entrega</h3>
-                    <p style="font-size: 1em; text-align: center; color: var(--text-light); margin-bottom: 30px;">Olá, **{{ userProfile.name.split(' ')[0] }}**. Por favor, preencha/atualize seus dados de entrega.</p>
+                    <p style="font-size: 0.9em; color: var(--text-light); margin-bottom: 20px;">
+                        Preencha seu endereço para que possamos calcular a entrega.
+                    </p>
                     <form @submit.prevent="saveAddressAndCheckout">
-                        
                         <div class="address-form-grid">
-                            
                             <div>
                                 <input type="text" v-model="userProfile.address.street" placeholder="Rua / Avenida" required>
                             </div>
-
                             <div class="half-width">
                                 <input type="text" v-model="userProfile.address.number" placeholder="Número" required>
                             </div>
                             <div class="half-width">
-                                <input type="text" v-model="userProfile.address.complement" placeholder="Complemento (apto, bloco, etc.)">
+                                <input type="text" v-model="userProfile.address.complement" placeholder="Complemento (ex: Apto 101)">
                             </div>
-
                             <div>
                                 <input type="text" v-model="userProfile.address.neighborhood" placeholder="Bairro" required>
                             </div>
@@ -895,685 +886,683 @@
                                 <input type="text" v-model="userProfile.address.city" placeholder="Cidade" required>
                             </div>
                             <div class="half-width">
-                                <input type="text" v-model="userProfile.address.zipCode" placeholder="CEP (00000-000)" required>
+                                <input type="text" v-model="userProfile.address.zipCode" placeholder="CEP" required>
                             </div>
-
                         </div>
-                        
-                        <button type="submit" class="btn btn-primary primary" style="margin-top: 20px;">Salvar Endereço e Finalizar</button>
+                        <button type="submit" class="btn btn-success primary" style="margin-top: 15px;">Salvar Endereço e Continuar</button>
                     </form>
+                    <button class="secondary" @click="closeProfileModal">Cancelar</button>
                 </div>
-
             </div>
         </div>
     </div>
     
-   <script>
-    // --- 1. CONFIGURAÇÃO DO FIREBASE ---
-    // ⚠️ ATENÇÃO: Substitua pelos seus dados REAIS do Firebase!
-    const firebaseConfig = {
-        apiKey: "AIzaSyAnGyAYBthXQs5rEylnLXCxOVQKKN1FP34",
-        authDomain: "grafica-619fd.firebaseapp.com",
-        databaseURL: "https://grafica-619fd-default-rtdb.firebaseio.com", 
-        projectId: "grafica-619fd",
-        storageBucket: "grafica-619fd.firebasestorage.app",
-        messagingSenderId: "1022124441596",
-        appId: "1:1022124441596:web:d6f25056f38a6babc67c79",
-        measurementId: "G-SQ4QNTFXCM"
-    }; 
+    <script>
+        // ⚠️ ATENÇÃO: Substitua pelos seus dados REAIS do Firebase!
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnGyAYBthXQs5rEylnLXCxOVQKKN1FP34",
+            authDomain: "grafica-619fd.firebaseapp.com",
+            databaseURL: "https://grafica-619fd-default-rtdb.firebaseio.com", 
+            projectId: "grafica-619fd",
+            storageBucket: "grafica-619fd.firebasestorage.app",
+            messagingSenderId: "1022124441596",
+            appId: "1:1022124441596:web:d6f25056f38a6babc67c79",
+            measurementId: "G-SQ4QNTFXCM"
+        }; 
 
-    let auth = null;
-    let db = null;
+        let auth = null;
+        let db = null;
 
-    const initializeFirebase = () => {
-        if (typeof firebase !== 'undefined' && typeof firebase.initializeApp !== 'undefined') {
-            try {
-                // Previne a inicialização duplicada do aplicativo
-                if (firebase.apps.length === 0) {
-                    firebase.initializeApp(firebaseConfig);
+        /** * Inicializa o Firebase. 
+         */
+        const initializeFirebase = () => {
+            if (typeof firebase !== 'undefined' && typeof firebase.initializeApp !== 'undefined') {
+                try {
+                    if (firebase.apps.length === 0) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    
+                    auth = firebase.auth();
+                    db = firebase.database();
+                    console.log("✅ Firebase inicializado com sucesso.");
+                    
+                } catch (e) {
+                    console.error("❌ ERRO GRAVE: Falha ao inicializar o Firebase.", e);
+                    alert("Erro fatal ao carregar o sistema. Verifique o console.");
                 }
-                
-                auth = firebase.auth();
-                db = firebase.database();
-                console.log("✅ Firebase inicializado com sucesso.");
-                
-            } catch (e) {
-                console.error("❌ ERRO GRAVE: Falha ao inicializar o Firebase.", e);
-                alert("Erro fatal ao carregar o sistema. Verifique o console.");
+            } else {
+                console.error("❌ ERRO GRAVE: Firebase SDK não carregado. Verifique os links CDN.");
+                alert("Erro fatal: Firebase SDK ausente.");
             }
-        } else {
-            console.error("❌ ERRO GRAVE: Firebase SDK não carregado. Verifique os links CDN.");
-            alert("Erro fatal: Firebase SDK ausente.");
-        }
-    };
+        };
 
-    initializeFirebase();
+        initializeFirebase();
 
-    // 🎯 CONSTANTES DE LÓGICA 🎯
-    const STORAGE_CART_KEY = 'anonymous_cart'; 
-    const WHATSAPP_NUMBER = '81995038049'; 
+        // 🎯 CONSTANTES DE LÓGICA 🎯
+        const STORAGE_CART_KEY = 'anonymous_cart'; 
+        // DDI (55) + DDD (81) + Número
+        const WHATSAPP_NUMBER = '5581995038049'; 
 
-    // --- Função para criar a estrutura vazia do endereço ---
-    const createEmptyAddress = () => ({
-        street: '',
-        number: '',
-        complement: '',
-        neighborhood: '',
-        city: '',
-        zipCode: ''
-    });
-    
-    // --- Funções de Ajuda de Erro do Firebase Auth ---
-    const getFirebaseErrorMessage = (error) => {
-        console.error("Erro Firebase Code:", error.code, "Mensagem:", error.message);
+        // --- Funções de Suporte Comuns ---
         
-        switch (error.code) {
-            case 'auth/email-already-in-use':
-                return 'Este e-mail já está cadastrado. Tente fazer login.';
-            case 'auth/invalid-email':
-                return 'O e-mail fornecido é inválido.';
-            case 'auth/weak-password':
-                return 'A senha deve ter pelo menos 6 caracteres.';
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-                return 'E-mail ou senha incorretos.';
-            case 'auth/requires-recent-login':
-                return 'É necessário fazer o login novamente para realizar esta ação.';
-            case 'auth/operation-not-allowed':
-                return 'O login por e-mail/senha está desativado no console do Firebase.';
-            case 'auth/network-request-failed':
-                return 'Problema de conexão com a internet. Tente novamente.';
-            default:
-                return `Ocorreu um erro desconhecido: ${error.code}. Tente novamente.`;
-        }
-    };
-    // -----------------------------
-    
-    const { createApp, ref, computed, onMounted, watch } = Vue;
-    
-    createApp({
-        setup() {
-            // --- 1. ESTADO CENTRAL ---
-            const currentView = ref('produtos'); 
-            const isLoggedIn = ref(false); 
-            const isLoading = ref(true); 
+        /** * Formata um valor para a moeda Brasileira (R$), sem negrito.
+         * @param {number} amount 
+         */
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount);
+        };
 
-            const userId = ref(null); 
+        // --- Função para criar a estrutura vazia do endereço ---
+        const createEmptyAddress = () => ({
+            street: '',
+            number: '',
+            complement: '',
+            neighborhood: '',
+            city: '',
+            zipCode: ''
+        });
+        
+        // --- Funções de Ajuda de Erro do Firebase Auth ---
+        const getFirebaseErrorMessage = (error) => {
+            console.error("Erro Firebase Code:", error.code, "Mensagem:", error.message);
             
-            const userProfile = ref({
-                name: 'Convidado',
-                email: '',
-                address: createEmptyAddress() 
-            });
-
-            const isProfileModalOpen = ref(false);
-            const loginView = ref('login'); 
-
-            const tempLogin = ref({ email: '', password: '' });
-            const tempRegister = ref({ name: '', email: '', password: '' }); 
-            const tempRecover = ref({ email: '' }); 
-
-            const products = ref([]); 
-            const cartItems = ref([]);
-            const userOrders = ref([]); 
-            const currentPageOrders = ref(1); 
-            
-            // -----------------------------------------------------------
-            // FUNÇÕES DE SINCRONIZAÇÃO DE DADOS (CARRINHO E PERFIL) 
-            // -----------------------------------------------------------
-
-            const saveCartLocal = () => {
-                if (!isLoggedIn.value) {
-                    localStorage.setItem(STORAGE_CART_KEY, JSON.stringify(cartItems.value));
-                }
-            };
-
-            const loadCartLocal = () => {
-                const storedCart = localStorage.getItem(STORAGE_CART_KEY);
-                if (storedCart) {
-                    try {
-                        cartItems.value = JSON.parse(storedCart).map(item => ({...item, quantityToAdd: 1}));
-                    } catch (e) {
-                        cartItems.value = [];
-                    }
-                } else {
-                    cartItems.value = [];
-                }
-            };
-
-            const saveCartToFirebase = async () => {
-                if (!userId.value || !db) return; 
-                const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
+            switch (error.code) {
+                case 'auth/email-already-in-use': return 'Este e-mail já está cadastrado. Tente fazer login.';
+                case 'auth/invalid-email': return 'O e-mail fornecido é inválido.';
+                case 'auth/weak-password': return 'A senha deve ter pelo menos 6 caracteres.';
+                case 'auth/user-not-found':
+                case 'auth/wrong-password': return 'E-mail ou senha incorretos.';
+                case 'auth/network-request-failed': return 'Problema de conexão com a internet. Tente novamente.';
+                default: return `Ocorreu um erro desconhecido: ${error.code}. Tente novamente.`;
+            }
+        };
+        // -----------------------------
+        
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+        
+        createApp({
+            setup() {
+                // --- 1. ESTADO CENTRAL ---
+                const currentView = ref('produtos'); 
+                const isLoggedIn = ref(false); 
+                const isLoading = ref(true); 
+                const userId = ref(null); 
                 
-                try {
-                    const cartDataToSave = cartItems.value.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        imageUrl: item.imageUrl,
-                        quantity: item.quantity
-                    }));
-                    await cartRef.set(cartDataToSave);
-                } catch (error) {
-                    console.error("Erro ao salvar carrinho no Firebase:", error);
-                }
-            };
-            
-            const loadCartFromFirebase = async () => {
-                if (!userId.value || !db) return;
-                
-                const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
-                
-                try {
-                    const snapshot = await cartRef.get();
-                    if (snapshot.exists()) {
-                        const loadedCart = snapshot.val();
-                        // Garante que é um array (necessário se houver itens)
-                        cartItems.value = Array.isArray(loadedCart) ? loadedCart.map(item => ({...item, quantityToAdd: 1})) : [];
-                    } else {
-                        cartItems.value = [];
-                    }
-                } catch (error) {
-                    console.error("Erro ao carregar carrinho do Firebase:", error);
-                    cartItems.value = [];
-                }
-            };
-
-            const loadUserProfileFromFirebase = async (uid) => {
-                if (!uid || !db) return;
-                
-                const userRef = db.ref(`usuarios/${uid}`);
-                
-                try {
-                    const snapshot = await userRef.get();
-                    if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        userProfile.value.name = userData.name || auth.currentUser.displayName || 'Usuário';
-                        userProfile.value.email = userData.email || auth.currentUser.email;
-                        // Usa dados salvos, ou endereço vazio como fallback
-                        userProfile.value.address = userData.address || createEmptyAddress(); 
-                    } else {
-                        // Se não há perfil no RTDB, usa dados do Auth e cria endereço vazio
-                        userProfile.value.name = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];
-                        userProfile.value.email = auth.currentUser.email;
-                        userProfile.value.address = createEmptyAddress();
-                        
-                        // Opcional: Salva o perfil mínimo no RTDB se ele não existir
-                        userRef.set({
-                            name: userProfile.value.name,
-                            email: userProfile.value.email,
-                            address: userProfile.value.address,
-                            createdAt: firebase.database.ServerValue.TIMESTAMP 
-                        }).catch(e => console.warn("Falha ao criar perfil mínimo no DB:", e));
-                    }
-                } catch (error) {
-                    console.error("Erro ao carregar perfil do DB:", error);
-                }
-            };
-            
-            const loadOrdersFromFirebase = async () => {
-                if (!userId.value || !db) {
-                    userOrders.value = [];
-                    return;
-                }
-
-                const ordersRef = db.ref(`pedidos/${userId.value}`); 
-                
-                try {
-                    // Ordena por chave para pegar os pedidos em ordem de criação (assumindo que as chaves são timestamps)
-                    const snapshot = await ordersRef.orderByKey().get(); 
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        // Converte objeto de pedidos em array e inverte para o mais recente primeiro
-                        userOrders.value = Object.keys(data).map(key => ({
-                            id: key, 
-                            ...data[key]
-                        })).reverse(); 
-                    } else {
-                        userOrders.value = [];
-                    }
-                    currentPageOrders.value = 1; 
-                } catch (error) {
-                    console.error("Erro ao carregar pedidos do Firebase:", error);
-                    userOrders.value = [];
-                }
-            };
-
-            // Observa a alteração do carrinho e salva no local ou no Firebase
-            watch(cartItems, () => {
-                if (isLoggedIn.value) {
-                    saveCartToFirebase();
-                } else {
-                    saveCartLocal();
-                }
-            }, { deep: true });
-
-            // -----------------------------------------------------------
-            // INICIALIZAÇÃO, PRODUTOS E AUTENTICAÇÃO
-            // -----------------------------------------------------------
-
-            const fetchProductsFromFirebase = async () => {
-                if (!db) {
-                    isLoading.value = false;
-                    return;
-                }
-                
-                const productsRef = db.ref('produtos'); 
-
-                try {
-                    const snapshot = await productsRef.get();
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        const loadedProducts = [];
-
-                        for (const key in data) {
-                            if (data.hasOwnProperty(key)) {
-                                const productData = data[key];
-                                loadedProducts.push({
-                                    id: key, 
-                                    name: productData.name || 'Produto sem nome',
-                                    imageUrl: productData.imageUrl || '',
-                                    price: parseFloat(productData.price) || 0, 
-                                    quantityToAdd: 1 
-                                });
-                            }
-                        }
-                        products.value = loadedProducts;
-                    } else {
-                        products.value = [];
-                    }
-                } catch (error) {
-                    console.error("Erro ao buscar produtos do Firebase:", error);
-                    alert("Erro ao carregar o catálogo. Verifique sua conexão.");
-                } finally {
-                    // Não encerra o loading aqui. O onAuthStateChanged fará isso.
-                }
-            };
-
-            const initializeApp = () => {
-                if (!auth) {
-                    isLoading.value = false;
-                    return;
-                }
-                
-                auth.onAuthStateChanged(async (user) => {
-                    const cartBeforeAuth = cartItems.value.slice(); // Salva o carrinho anônimo
-
-                    if (user) {
-                        // Usuário Logado
-                        userId.value = user.uid;
-                        isLoggedIn.value = true;
-                        
-                        await loadUserProfileFromFirebase(user.uid);
-                        await loadCartFromFirebase();
-                        await loadOrdersFromFirebase();
-                        
-                        // Transfere o carrinho anônimo para o Firebase se o carrinho do DB estava vazio
-                        if (cartItems.value.length === 0 && cartBeforeAuth.length > 0) {
-                            cartItems.value = cartBeforeAuth; 
-                            localStorage.removeItem(STORAGE_CART_KEY); 
-                            // O watch cuidará de salvar no Firebase.
-                            console.log(`Carrinho anônimo (${cartBeforeAuth.length} itens) transferido.`);
-                        }
-                        
-                    } else {
-                        // Usuário Desconectado ou Anônimo
-                        userId.value = null;
-                        isLoggedIn.value = false;
-                        userProfile.value = { name: 'Convidado', email: '', address: createEmptyAddress() };
-                        userOrders.value = [];
-                        loadCartLocal(); // Carrega o carrinho anônimo
-                    }
-                    isLoading.value = false;
+                const userProfile = ref({
+                    name: 'Convidado',
+                    email: '',
+                    address: createEmptyAddress() 
                 });
-            };
-            
-            onMounted(() => {
-                // Carrega produtos e depois inicia a observação do estado do Auth
-                fetchProductsFromFirebase().then(initializeApp);
-            });
 
-            // --- 2. PROPRIEDADES COMPUTADAS (Calculadas) ---
-            
-            const formattedAddress = computed(() => {
-                const addr = userProfile.value.address;
-                if (!addr || !addr.street || !addr.number || !addr.city) {
-                    return ''; // Endereço incompleto/vazio
-                }
-                let parts = [];
-                parts.push(`${addr.street}, ${addr.number}`);
-                if (addr.complement) {
-                    parts.push(`Comp: ${addr.complement}`);
-                }
-                parts.push(addr.neighborhood);
-                parts.push(`${addr.city} (CEP: ${addr.zipCode})`);
+                const isProfileModalOpen = ref(false);
+                const loginView = ref('login'); 
+
+                const tempLogin = ref({ email: '', password: '' });
+                const tempRegister = ref({ name: '', email: '', password: '' }); 
+                const tempRecover = ref({ email: '' }); 
+
+                const products = ref([]); 
+                const cartItems = ref([]);
+                const userOrders = ref([]); 
+                const currentPageOrders = ref(1); 
                 
-                return parts.join(' | ');
-            });
-            
-            const formatOrderAddress = (addr) => {
-                if (!addr || typeof addr === 'string') {
-                    return addr || 'Endereço não informado'; 
-                }
-                
-                let parts = [];
-                parts.push(`${addr.street}, ${addr.number}`);
-                if (addr.complement) {
-                    parts.push(`Comp: ${addr.complement}`);
-                }
-                parts.push(addr.neighborhood);
-                parts.push(`${addr.city} (CEP: ${addr.zipCode})`);
-                
-                return parts.join(' | ');
-            };
-            
-            const totalCartItems = computed(() => {
-                return cartItems.value.reduce((total, item) => total + item.quantity, 0);
-            });
+                // -----------------------------------------------------------
+                // FUNÇÕES DE SINCRONIZAÇÃO DE DADOS (CARRINHO E PERFIL) 
+                // -----------------------------------------------------------
 
-            const totalCartPrice = computed(() => {
-                return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0);
-            });
-            
-            const totalOrdersCount = computed(() => userOrders.value.length);
-
-            const itemsPerPageOrders = 5;
-
-            const totalPagesOrders = computed(() => {
-                return Math.ceil(userOrders.value.length / itemsPerPageOrders);
-            });
-
-            const paginatedOrders = computed(() => {
-                const start = (currentPageOrders.value - 1) * itemsPerPageOrders;
-                const end = start + itemsPerPageOrders;
-                return userOrders.value.slice(start, end);
-            });
-
-            // --- 3. MÉTODOS DE AUTENTICAÇÃO E PERFIL ---
-            
-            const openProfileModal = (view = 'login') => {
-                loginView.value = view;
-                isProfileModalOpen.value = true;
-            };
-
-            const closeProfileModal = () => {
-                isProfileModalOpen.value = false;
-            };
-            
-            // Login com Firebase Auth
-            const handleLogin = async () => {
-                if (!auth) return alert("Sistema de autenticação indisponível.");
-                const { email, password } = tempLogin.value;
-                if (!email || !password) return alert("Preencha e-mail e senha.");
-
-                try {
-                    await auth.signInWithEmailAndPassword(email, password);
-                    closeProfileModal();
-                    tempLogin.value = { email: '', password: '' }; // Limpa campos
-                } catch (error) {
-                    alert(getFirebaseErrorMessage(error));
-                }
-            };
-
-            // Cadastro com Firebase Auth e criação de metadados no DB
-            const handleRegister = async () => { 
-                if (!auth || !db) return alert("Sistema de autenticação indisponível.");
-                const { name, email, password } = tempRegister.value;
-                
-                if (!name || !email || password.length < 6) {
-                    return alert("Preencha todos os campos corretamente (Nome, E-mail, Senha > 6 chars).");
-                }
-                
-                try {
-                    // 1. Cria o usuário no Auth
-                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    const user = userCredential.user;
-
-                    // 2. Atualiza o nome de exibição no Auth
-                    await user.updateProfile({ displayName: name });
-
-                    // 3. Salva os metadados no Realtime Database
-                    const userRef = db.ref(`usuarios/${user.uid}`);
-                    await userRef.set({
-                        name: name,
-                        email: email,
-                        address: createEmptyAddress(),
-                        createdAt: firebase.database.ServerValue.TIMESTAMP 
-                    });
-                    
-                    alert(`🎉 Cadastro realizado com sucesso! Bem-vindo(a), ${name}.`);
-                    tempRegister.value = { name: '', email: '', password: '' }; // Limpa campos
-                    closeProfileModal();
-
-                } catch (error) {
-                    alert(getFirebaseErrorMessage(error));
-                    // Se a autenticação falhar, remove qualquer login temporário que possa ter ocorrido
-                    if (auth.currentUser) {
-                        auth.signOut();
-                    }
-                }
-            };
-
-            // Recuperação de senha com Firebase Auth
-            const handlePasswordRecovery = async () => { 
-                if (!auth) return alert("Sistema de autenticação indisponível.");
-                const email = tempRecover.value.email;
-                if (!email) return alert("Por favor, insira um e-mail.");
-                
-                try {
-                    await auth.sendPasswordResetEmail(email);
-                    
-                    alert(`✅ E-mail de redefinição enviado para: ${email}. Verifique sua caixa de entrada e spam.`);
-                    
-                    loginView.value = 'login';
-                    tempRecover.value.email = ''; 
-                } catch (error) {
-                    alert(getFirebaseErrorMessage(error));
-                }
-            };
-
-            const logout = async () => {
-                if (!auth) return;
-                try {
-                    await auth.signOut();
-                    // O onAuthStateChanged cuida da limpeza do estado local
-                    alert("Sessão encerrada com sucesso.");
-                } catch (error) {
-                    console.error("Erro ao fazer logout:", error);
-                    alert("Erro ao sair. Tente novamente.");
-                }
-                currentView.value = 'produtos';
-            };
-
-            const changePageOrders = (page) => {
-                if (page >= 1 && page <= totalPagesOrders.value) {
-                    currentPageOrders.value = page;
-                }
-            };
-            
-            // --- 4. FUNÇÕES DE CARRINHO E CHECKOUT ---
-            
-            const ensureMinQuantity = (product) => {
-                if (product.quantityToAdd < 1 || isNaN(product.quantityToAdd)) {
-                    product.quantityToAdd = 1;
-                }
-            };
-
-            const addToCart = (product, quantity) => {
-                const qty = Math.max(1, parseInt(quantity) || 1);
-                
-                const existingItem = cartItems.value.find(item => item.id === product.id);
-                
-                if (existingItem) {
-                    existingItem.quantity += qty;
-                } else {
-                    cartItems.value.push({
-                        id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        imageUrl: product.imageUrl,
-                        quantity: qty,
-                    });
-                }
-                // O watch cuidará do saveLocal/saveFirebase
-            };
-
-            const updateCartQuantity = (item, delta) => {
-                const newQuantity = item.quantity + delta;
-                
-                if (newQuantity < 1) {
-                    removeFromCart(item.id);
-                } else {
-                    item.quantity = newQuantity;
-                }
-            };
-
-            const removeFromCart = (productId) => {
-                cartItems.value = cartItems.value.filter(item => item.id !== productId);
-            };
-            
-            const checkout = () => {
-                if (totalCartItems.value === 0) {
-                    alert("Seu carrinho está vazio!");
-                    return;
-                }
-
-                if (!isLoggedIn.value) {
-                    alert("Por favor, faça login ou cadastre-se para finalizar a compra.");
-                    openProfileModal('login');
-                    return;
-                }
-                
-                if (formattedAddress.value.trim() === '') {
-                    alert("Por favor, preencha seu endereço para finalizar o pedido.");
-                    openProfileModal('address'); 
-                    return;
-                }
-                
-                // Se tudo estiver OK, o usuário deve revisar o endereço antes de confirmar
-                openProfileModal('address');
-            };
-            
-            const saveAddressAndCheckout = async () => {
-                if (!db || !userId.value) return;
-
-                const addr = userProfile.value.address;
-                if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || !addr.zipCode) {
-                    alert("Por favor, preencha todos os campos obrigatórios do endereço (Rua, Número, Bairro, Cidade, CEP).");
-                    return;
-                }
-
-                const userRef = db.ref(`usuarios/${userId.value}`);
-
-                try {
-                    // Atualiza o endereço no Realtime Database
-                    await userRef.update({ address: userProfile.value.address });
-                    
-                    closeProfileModal();
-                    confirmOrder(); // Procede com a finalização
-                } catch (error) {
-                    console.error("Erro ao salvar endereço:", error);
-                    alert("Erro ao salvar o endereço. Tente novamente.");
-                }
-            };
-            
-            // --- 5. FINALIZAÇÃO DO PEDIDO (FIREBASE + WHATSAPP) ---
-            
-            const sendOrderDetailsToWhatsApp = (orderId, orderData) => {
-                
-                const customerAddress = formatOrderAddress(orderData.customer.address);
-
-                const itemsList = orderData.items.map(item => 
-                    `* ${item.quantity}x ${item.name} (R$ ${item.price.toFixed(2).replace('.', ',')})`
-                ).join('\n');
-
-                const message = `
-                    🛒 *NOVO PEDIDO RECEBIDO!* 🛒
-
-                    *ID do Pedido:* #${orderId.substring(0, 8).toUpperCase()}
-                    *Data:* ${orderData.date}
-                    *Total:* R$ ${orderData.total.toFixed(2).replace('.', ',')}
-
-                    *CLIENTE:*
-                    *Nome:* ${orderData.customer.name}
-                    *Email:* ${orderData.customer.email}
-                    *Endereço:* ${customerAddress}
-
-                    *ITENS DO PEDIDO:*
-                    ${itemsList}
-
-                    *(Confirme o pagamento e o envio. Agradecemos a preferência!)*
-                `.trim();
-
-                const encodedMessage = encodeURIComponent(message);
-                const whatsappLink = `https://wa.me/55${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-
-                // Abre o link do WhatsApp
-                window.open(whatsappLink, '_blank');
-            };
-
-            const confirmOrder = async () => {
-                if (!isLoggedIn.value || !userId.value || !db) {
-                    alert("Erro de sistema: Você precisa estar logado.");
-                    return;
-                }
-                if (totalCartItems.value === 0) {
-                    alert("Seu carrinho está vazio!");
-                    return;
-                }
-
-                // Cria uma nova chave única para o pedido (timestamp-based key)
-                const newOrderRef = db.ref(`pedidos/${userId.value}`).push();
-
-                const orderData = {
-                    date: new Date().toLocaleString('pt-BR'),
-                    total: totalCartPrice.value,
-                    status: 'Processando',
-                    items: cartItems.value.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        price: item.price,
-                        quantity: item.quantity
-                    })),
-                    customer: {
-                        name: userProfile.value.name,
-                        email: userProfile.value.email,
-                        address: userProfile.value.address // Endereço atual salvo
+                const saveCartLocal = () => {
+                    if (!isLoggedIn.value) {
+                        // Salva apenas os dados essenciais
+                        const cartDataToSave = cartItems.value.map(item => ({
+                            id: item.id, name: item.name, price: item.price, imageUrl: item.imageUrl, quantity: item.quantity
+                        }));
+                        localStorage.setItem(STORAGE_CART_KEY, JSON.stringify(cartDataToSave));
                     }
                 };
 
-                try {
-                    await newOrderRef.set(orderData);
-                    
-                    // Notifica via WhatsApp
-                    sendOrderDetailsToWhatsApp(newOrderRef.key, orderData);
-                    
-                    // Limpa o carrinho e atualiza pedidos
-                    cartItems.value = []; 
-                    await loadOrdersFromFirebase(); 
-                    currentView.value = 'pedidos';
-                    alert("Pedido finalizado com sucesso! Redirecionando para o WhatsApp para confirmar.");
+                const loadCartLocal = () => {
+                    const storedCart = localStorage.getItem(STORAGE_CART_KEY);
+                    if (storedCart) {
+                        try {
+                            cartItems.value = JSON.parse(storedCart) || [];
+                        } catch (e) {
+                            console.error("Erro ao parsear carrinho local:", e);
+                            cartItems.value = [];
+                        }
+                    } else {
+                        cartItems.value = [];
+                    }
+                };
 
-                } catch (error) {
-                    console.error("Erro ao finalizar pedido:", error);
-                    alert("Ocorreu um erro ao processar seu pedido. Tente novamente.");
-                }
-            };
-            
-            return {
-                // Estado e Computadas
-                currentView, products, cartItems, userOrders, userProfile, isLoggedIn, isLoading,
-                isProfileModalOpen, loginView, tempLogin, tempRegister, tempRecover, 
-                totalCartItems, totalCartPrice, totalOrdersCount, 
-                currentPageOrders, totalPagesOrders, paginatedOrders, 
-                formattedAddress, formatOrderAddress, 
+                const saveCartToFirebase = async () => {
+                    if (!userId.value || !db) return; 
+                    const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
+                    
+                    try {
+                        // Garante que só os dados essenciais sejam salvos
+                        const cartDataToSave = cartItems.value.map(item => ({
+                            id: item.id, name: item.name, price: item.price, imageUrl: item.imageUrl, quantity: item.quantity
+                        }));
+                        await cartRef.set(cartDataToSave);
+                    } catch (error) {
+                        console.error("Erro ao salvar carrinho no Firebase:", error);
+                    }
+                };
+                
+                /** * Carrega o carrinho do Firebase e RETORNA o array de itens.
+                 */
+                const loadCartFromFirebase = async () => {
+                    if (!userId.value || !db) return [];
+                    const cartRef = db.ref(`usuarios/${userId.value}/carrinho`);
+                    try {
+                        const snapshot = await cartRef.get();
+                        const loadedCart = snapshot.exists() ? snapshot.val() : [];
+                        return Array.isArray(loadedCart) ? loadedCart : [];
+                    } catch (error) {
+                        console.error("Erro ao carregar carrinho do Firebase:", error);
+                        return [];
+                    }
+                };
 
-                // Métodos
-                openProfileModal, closeProfileModal, ensureMinQuantity,
-                handleLogin, handleRegister, logout, handlePasswordRecovery, 
-                addToCart, updateCartQuantity, removeFromCart, checkout, saveAddressAndCheckout, confirmOrder,
-                changePageOrders 
-            };
-        }
-    }).mount('#app');
-</script>
+                /** * Mescla o carrinho anônimo (local) com o carrinho do Firebase (DB). 
+                 */
+                const mergeCarts = (localCart, firebaseCart) => {
+                    const mergedCart = [...firebaseCart]; 
+
+                    localCart.forEach(localItem => {
+                        const existingItem = mergedCart.find(item => item.id === localItem.id);
+                        if (existingItem) {
+                            existingItem.quantity += localItem.quantity;
+                        } else {
+                            mergedCart.push(localItem);
+                        }
+                    });
+                    return mergedCart;
+                };
+
+                const loadUserProfileFromFirebase = async (uid) => {
+                    if (!uid || !db) return;
+                    const userRef = db.ref(`usuarios/${uid}`);
+                    
+                    try {
+                        const snapshot = await userRef.get();
+                        if (snapshot.exists()) {
+                            const userData = snapshot.val();
+                            userProfile.value.name = userData.name || auth.currentUser.displayName || 'Usuário';
+                            userProfile.value.email = userData.email || auth.currentUser.email;
+                            userProfile.value.address = userData.address || createEmptyAddress(); 
+                        } else {
+                            userProfile.value.name = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];
+                            userProfile.value.email = auth.currentUser.email;
+                            userProfile.value.address = createEmptyAddress();
+                            
+                            // Cria o perfil mínimo se ele não existir
+                            userRef.set({
+                                name: userProfile.value.name,
+                                email: userProfile.value.email,
+                                address: userProfile.value.address,
+                                createdAt: firebase.database.ServerValue.TIMESTAMP 
+                            }).catch(e => console.warn("Falha ao criar perfil mínimo no DB:", e));
+                        }
+                    } catch (error) {
+                        console.error("Erro ao carregar perfil do DB:", error);
+                    }
+                };
+                
+                const loadOrdersFromFirebase = async () => {
+                    if (!userId.value || !db) {
+                        userOrders.value = [];
+                        return;
+                    }
+
+                    const ordersRef = db.ref(`pedidos/${userId.value}`); 
+                    
+                    try {
+                        // Ordena pelo timestamp e reverte para o mais recente primeiro
+                        const snapshot = await ordersRef.orderByChild('timestamp').get(); 
+                        if (snapshot.exists()) {
+                            const data = snapshot.val();
+                            userOrders.value = Object.keys(data).map(key => ({
+                                id: key, 
+                                ...data[key]
+                            })).reverse(); 
+                        } else {
+                            userOrders.value = [];
+                        }
+                        currentPageOrders.value = 1; 
+                    } catch (error) {
+                        console.error("Erro ao carregar pedidos do Firebase:", error);
+                        userOrders.value = [];
+                    }
+                };
+
+                // Observa a alteração do carrinho e salva no local ou no Firebase
+                watch(cartItems, () => {
+                    if (isLoggedIn.value) {
+                        saveCartToFirebase();
+                    } else {
+                        saveCartLocal();
+                    }
+                }, { deep: true });
+
+                // -----------------------------------------------------------
+                // INICIALIZAÇÃO E PRODUTOS
+                // -----------------------------------------------------------
+
+                const fetchProductsFromFirebase = async () => {
+                    if (!db) { return; }
+                    const productsRef = db.ref('produtos'); 
+
+                    try {
+                        const snapshot = await productsRef.get();
+                        if (snapshot.exists()) {
+                            const data = snapshot.val();
+                            const loadedProducts = [];
+
+                            for (const key in data) {
+                                if (data.hasOwnProperty(key)) {
+                                    const productData = data[key];
+                                    loadedProducts.push({
+                                        id: key, 
+                                        name: productData.name || 'Produto sem nome',
+                                        imageUrl: productData.imageUrl || '',
+                                        price: parseFloat(productData.price) || 0, 
+                                        quantityToAdd: 1 // Usado apenas no input do produto
+                                    });
+                                }
+                            }
+                            products.value = loadedProducts;
+                        } else {
+                            products.value = [];
+                        }
+                    } catch (error) {
+                        console.error("Erro ao buscar produtos do Firebase:", error);
+                        alert("Erro ao carregar o catálogo. Verifique sua conexão.");
+                    }
+                };
+
+                const initializeApp = () => {
+                    if (!auth) {
+                        isLoading.value = false;
+                        return;
+                    }
+                    
+                    auth.onAuthStateChanged(async (user) => {
+                        isLoading.value = true;
+                        // Clona o carrinho anônimo ANTES de carregar o do Firebase
+                        const cartBeforeAuth = cartItems.value.slice(); 
+
+                        if (user) {
+                            // === USUÁRIO LOGADO ===
+                            userId.value = user.uid;
+                            isLoggedIn.value = true;
+                            
+                            await loadUserProfileFromFirebase(user.uid);
+                            const firebaseCart = await loadCartFromFirebase(); 
+                            
+                            if (cartBeforeAuth.length > 0) {
+                                // Mescla o carrinho anônimo com o do DB
+                                cartItems.value = mergeCarts(cartBeforeAuth, firebaseCart);
+                                localStorage.removeItem(STORAGE_CART_KEY);
+                            } else {
+                                // Usa apenas o do Firebase
+                                cartItems.value = firebaseCart;
+                            }
+                            
+                            await loadOrdersFromFirebase();
+                            
+                        } else {
+                            // === USUÁRIO ANÔNIMO ===
+                            userId.value = null;
+                            isLoggedIn.value = false;
+                            userProfile.value = { name: 'Convidado', email: '', address: createEmptyAddress() };
+                            userOrders.value = [];
+                            loadCartLocal(); // Carrega o carrinho anônimo do localStorage
+                        }
+                        isLoading.value = false;
+                    });
+                };
+                
+                onMounted(() => {
+                    fetchProductsFromFirebase().then(initializeApp);
+                });
+
+                // --- 2. PROPRIEDADES COMPUTADAS (Calculadas) ---
+                
+                const formattedAddress = computed(() => {
+                    const addr = userProfile.value.address;
+                    if (!addr || !addr.street || !addr.number || !addr.city) {
+                        return ''; 
+                    }
+                    let parts = [];
+                    parts.push(`${addr.street}, ${addr.number}`);
+                    if (addr.complement) { parts.push(`Comp: ${addr.complement}`); }
+                    parts.push(addr.neighborhood);
+                    parts.push(`${addr.city} (CEP: ${addr.zipCode})`);
+                    
+                    return parts.filter(p => p).join(' | ');
+                });
+                
+                const formatOrderAddress = (addr) => {
+                    if (!addr || typeof addr === 'string') { return addr || 'Endereço não informado'; }
+                    
+                    let parts = [];
+                    parts.push(`${addr.street}, ${addr.number}`);
+                    if (addr.complement) { parts.push(`Comp: ${addr.complement}`); }
+                    parts.push(addr.neighborhood);
+                    parts.push(`${addr.city} (CEP: ${addr.zipCode})`);
+                    
+                    return parts.filter(p => p).join(' | ');
+                };
+                
+                const totalCartItems = computed(() => {
+                    return cartItems.value.reduce((total, item) => total + item.quantity, 0);
+                });
+
+                const totalCartPrice = computed(() => {
+                    return cartItems.value.reduce((total, item) => total + (item.price * item.quantity), 0);
+                });
+                
+                const itemsPerPageOrders = 5;
+
+                const totalPagesOrders = computed(() => {
+                    return Math.ceil(userOrders.value.length / itemsPerPageOrders);
+                });
+
+                const paginatedOrders = computed(() => {
+                    const start = (currentPageOrders.value - 1) * itemsPerPageOrders;
+                    const end = start + itemsPerPageOrders;
+                    return userOrders.value.slice(start, end);
+                });
+
+                // --- 3. MÉTODOS DE AUTENTICAÇÃO E PERFIL ---
+                
+                const openProfileModal = (view = 'login') => {
+                    loginView.value = view;
+                    isProfileModalOpen.value = true;
+                };
+
+                const closeProfileModal = () => {
+                    isProfileModalOpen.value = false;
+                };
+                
+                const handleLogin = async () => { 
+                    if (!auth) return alert("Sistema de autenticação indisponível.");
+                    const { email, password } = tempLogin.value;
+                    if (!email || !password) return alert("Preencha e-mail e senha.");
+
+                    try {
+                        await auth.signInWithEmailAndPassword(email, password);
+                        closeProfileModal();
+                        tempLogin.value = { email: '', password: '' }; 
+                    } catch (error) {
+                        alert(getFirebaseErrorMessage(error));
+                    }
+                };
+
+                const handleRegister = async () => { 
+                    if (!auth || !db) return alert("Sistema de autenticação indisponível.");
+                    const { name, email, password } = tempRegister.value;
+                    
+                    if (!name || !email || password.length < 6) {
+                        return alert("Preencha todos os campos corretamente (Nome, E-mail, Senha > 6 chars).");
+                    }
+                    
+                    try {
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        const user = userCredential.user;
+
+                        await user.updateProfile({ displayName: name });
+
+                        const userRef = db.ref(`usuarios/${user.uid}`);
+                        await userRef.set({
+                            name: name,
+                            email: email,
+                            address: createEmptyAddress(),
+                            createdAt: firebase.database.ServerValue.TIMESTAMP 
+                        });
+                        
+                        alert(`🎉 Cadastro realizado com sucesso! Bem-vindo(a), ${name}.`);
+                        tempRegister.value = { name: '', email: '', password: '' }; 
+                        closeProfileModal();
+
+                    } catch (error) {
+                        alert(getFirebaseErrorMessage(error));
+                        if (auth.currentUser) { auth.signOut(); }
+                    }
+                };
+
+                const handlePasswordRecovery = async () => { 
+                    if (!auth) return alert("Sistema de autenticação indisponível.");
+                    const email = tempRecover.value.email;
+                    if (!email) return alert("Por favor, insira um e-mail.");
+                    
+                    try {
+                        await auth.sendPasswordResetEmail(email);
+                        
+                        alert(`✅ E-mail de redefinição enviado para: ${email}. Verifique sua caixa de entrada e spam.`);
+                        
+                        loginView.value = 'login';
+                        tempRecover.value.email = ''; 
+                    } catch (error) {
+                        alert(getFirebaseErrorMessage(error));
+                    }
+                };
+
+                const logout = async () => {
+                    if (!auth) return;
+                    try {
+                        await auth.signOut();
+                        alert("Sessão encerrada com sucesso.");
+                    } catch (error) {
+                        console.error("Erro ao fazer logout:", error);
+                        alert("Erro ao sair. Tente novamente.");
+                    }
+                    currentView.value = 'produtos';
+                };
+
+                const changePageOrders = (page) => {
+                    if (page >= 1 && page <= totalPagesOrders.value) {
+                        currentPageOrders.value = page;
+                    }
+                };
+                
+                // --- 4. FUNÇÕES DE CARRINHO E CHECKOUT ---
+                
+                const ensureMinQuantity = (product) => {
+                    if (product.quantityToAdd < 1 || isNaN(product.quantityToAdd)) {
+                        product.quantityToAdd = 1;
+                    }
+                };
+
+                const addToCart = (product, quantity) => {
+                    const qty = Math.max(1, parseInt(quantity) || 1);
+                    
+                    const existingItem = cartItems.value.find(item => item.id === product.id);
+                    
+                    if (existingItem) {
+                        existingItem.quantity += qty;
+                    } else {
+                        cartItems.value.push({
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            imageUrl: product.imageUrl,
+                            quantity: qty,
+                        });
+                    }
+                };
+
+                const updateCartQuantity = (item, delta) => {
+                    const newQuantity = item.quantity + delta;
+                    
+                    if (newQuantity < 1) {
+                        removeFromCart(item.id);
+                    } else {
+                        item.quantity = newQuantity;
+                    }
+                };
+
+                const removeFromCart = (productId) => {
+                    cartItems.value = cartItems.value.filter(item => item.id !== productId);
+                };
+                
+                const checkout = () => {
+                    if (totalCartItems.value === 0) {
+                        alert("Seu carrinho está vazio!");
+                        return;
+                    }
+
+                    if (!isLoggedIn.value) {
+                        alert("Por favor, faça login ou cadastre-se para finalizar a compra.");
+                        openProfileModal('login');
+                        return;
+                    }
+                    
+                    // Validação mínima de endereço
+                    const addr = userProfile.value.address;
+                    if (!addr.street || !addr.number || !addr.city) {
+                        alert("Por favor, preencha seu endereço completo para finalizar o pedido.");
+                        openProfileModal('address'); 
+                        return;
+                    }
+                    
+                    // Se estiver logado e o endereço estiver preenchido, o botão no carrinho será "Confirmar Endereço e Finalizar".
+                    // Se não, o checkout chama o modal de endereço (caso esteja logado e sem endereço)
+                    // Ou o modal de login (caso não esteja logado).
+                    if (isLoggedIn.value && formattedAddress.value.trim() !== '') {
+                        // Se já tiver endereço, o usuário clica no botão "Confirmar Endereço e Finalizar" (direto no template)
+                        // A função 'checkout' só é chamada se o botão primário for clicado (usuário não logado ou sem endereço).
+                        openProfileModal('address'); // Abre o modal para revisão do endereço se vier por aqui, embora o botão mais direto seja o 'confirmOrder'
+                    } else {
+                        openProfileModal('address'); // Chama o modal para preenchimento obrigatório
+                    }
+                };
+                
+                const saveAddressAndCheckout = async () => {
+                    if (!db || !userId.value) return;
+
+                    const addr = userProfile.value.address;
+                    if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || !addr.zipCode) {
+                        alert("Por favor, preencha todos os campos obrigatórios do endereço (Rua, Número, Bairro, Cidade, CEP).");
+                        return;
+                    }
+
+                    const userRef = db.ref(`usuarios/${userId.value}`);
+
+                    try {
+                        await userRef.update({ address: userProfile.value.address });
+                        
+                        closeProfileModal();
+                        confirmOrder(); // Procede com a finalização
+                    } catch (error) {
+                        console.error("Erro ao salvar endereço:", error);
+                        alert("Erro ao salvar o endereço. Tente novamente.");
+                    }
+                };
+                
+                // --- 5. FINALIZAÇÃO DO PEDIDO (FIREBASE + WHATSAPP) ---
+                
+                const sendOrderDetailsToWhatsApp = (orderId, orderData) => {
+                    
+                    const customerAddress = formatOrderAddress(orderData.customer.address);
+
+                    const itemsList = orderData.items.map(item => 
+                        // Formata itens para WhatsApp
+                        `* ${item.quantity}x ${item.name} (${formatCurrency(item.price)})` 
+                    ).join('\n');
+
+                    const message = `
+                        🛒 *NOVO PEDIDO RECEBIDO!* 🛒
+
+                        *ID do Pedido:* #${orderId.substring(0, 8).toUpperCase()}
+                        *Data:* ${orderData.date}
+                        *Total:* ${formatCurrency(orderData.total)}
+
+                        *CLIENTE:*
+                        *Nome:* ${orderData.customer.name}
+                        *Email:* ${orderData.customer.email}
+                        *Endereço:* ${customerAddress}
+
+                        *ITENS DO PEDIDO:*
+                        ${itemsList}
+
+                        *(Confirme o pagamento e o envio. Agradecemos a preferência!)*
+                    `.trim();
+
+                    const encodedMessage = encodeURIComponent(message);
+                    const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+
+                    window.open(whatsappLink, '_blank');
+                };
+
+                const confirmOrder = async () => {
+                    if (!isLoggedIn.value || !userId.value || !db || totalCartItems.value === 0) {
+                        alert("Erro na finalização: Faça login e verifique o carrinho.");
+                        return;
+                    }
+                    
+                    const addr = userProfile.value.address;
+                    if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || !addr.zipCode) {
+                        alert("Por favor, preencha seu endereço completo para finalizar o pedido.");
+                        openProfileModal('address'); 
+                        return;
+                    }
+
+
+                    const newOrderRef = db.ref(`pedidos/${userId.value}`).push();
+
+                    const orderData = {
+                        date: new Date().toLocaleString('pt-BR'),
+                        timestamp: firebase.database.ServerValue.TIMESTAMP, // Para ordenação
+                        total: totalCartPrice.value,
+                        status: 'Processando',
+                        items: cartItems.value.map(item => ({
+                            id: item.id,
+                            name: item.name,
+                            price: item.price,
+                            quantity: item.quantity
+                        })),
+                        customer: {
+                            name: userProfile.value.name,
+                            email: userProfile.value.email,
+                            address: userProfile.value.address 
+                        }
+                    };
+
+                    try {
+                        await newOrderRef.set(orderData);
+                        
+                        sendOrderDetailsToWhatsApp(newOrderRef.key, orderData);
+                        
+                        cartItems.value = []; 
+                        await loadOrdersFromFirebase(); 
+                        currentView.value = 'pedidos';
+                        alert("Pedido finalizado com sucesso! Redirecionando para o WhatsApp para confirmar.");
+
+                    } catch (error) {
+                        console.error("Erro ao finalizar pedido:", error);
+                        alert("Ocorreu um erro ao processar seu pedido. Tente novamente.");
+                    }
+                };
+                
+                return {
+                    // Estado e Computadas
+                    currentView, products, cartItems, userOrders, userProfile, isLoggedIn, isLoading,
+                    isProfileModalOpen, loginView, tempLogin, tempRegister, tempRecover, 
+                    totalCartItems, totalCartPrice, 
+                    currentPageOrders, totalPagesOrders, paginatedOrders, 
+                    formattedAddress, formatOrderAddress, formatCurrency, 
+
+                    // Métodos
+                    openProfileModal, closeProfileModal, ensureMinQuantity,
+                    handleLogin, handleRegister, logout, handlePasswordRecovery, 
+                    addToCart, updateCartQuantity, removeFromCart, checkout, saveAddressAndCheckout, confirmOrder,
+                    changePageOrders 
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+</html>
